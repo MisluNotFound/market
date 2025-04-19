@@ -1,0 +1,2 @@
+api/.gitignore
+api/cmd/main/__debug_*

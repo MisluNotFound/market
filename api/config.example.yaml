@@ -1,0 +1,19 @@
+server:
+  address: localhost:3200
+  base_ip: 127.0.0.1
+  access_token_expire: 300
+  refresh_token_expire: 172800
+
+
+database:
+  host: 127.0.0.1
+  port: 3306
+  database: market
+  username: root
+  password: mislu_market
+  charset: utf8mb4
+
+oss: 
+  type: local_storage
+  max_size: 1024  # TODO 按bucket区分
+  root: ./storage
