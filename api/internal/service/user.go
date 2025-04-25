@@ -2,9 +2,7 @@ package service
 
 import (
 	"errors"
-	"fmt"
 	"regexp"
-	"strings"
 
 	resourcemanager "github.com/mislu/market-api/internal/core/resource_manager"
 	"github.com/mislu/market-api/internal/db"
@@ -12,13 +10,17 @@ import (
 	"github.com/mislu/market-api/internal/types/models"
 	"github.com/mislu/market-api/internal/types/request"
 	"github.com/mislu/market-api/internal/types/response"
-	"github.com/mislu/market-api/internal/utils/app"
 	"github.com/mislu/market-api/internal/utils/lib"
 )
 
 var mobileRegex = regexp.MustCompile(`^1[3-9][0-9]{9}$`)
 var (
 	errUserNotFound = errors.New("user does not found")
+)
+
+const (
+	picMaxSize   = 10 << 20
+	videoMaxSize = 10 << 20
 )
 
 func CreateUser(req *request.CreateUserReq) exceptions.APIError {
@@ -33,11 +35,10 @@ func CreateUser(req *request.CreateUserReq) exceptions.APIError {
 	if user.Exists() {
 		return exceptions.BadRequestError(errors.New("phone has been bound"), exceptions.PhoneBoundError)
 	}
-	
+
 	if err != nil {
 		return exceptions.InternalServerError(err)
 	}
-
 
 	salt, err := lib.GenerateSalt()
 	if err != nil {
@@ -95,6 +96,10 @@ func UpdateBasic(req *request.UpdateBasicReq) exceptions.APIError {
 func UploadAvatar(req *request.UploadAvatarReq) (response.UploadAvatarResp, exceptions.APIError) {
 	var resp response.UploadAvatarResp
 
+	if req.Avatar.Size > picMaxSize {
+		return resp, exceptions.BadRequestError(errors.New("avatar size exceeds limit"), exceptions.ParameterBindingError)
+	}
+
 	user, err := db.GetOne[*models.User](
 		db.Equal("id", req.UserID),
 	)
@@ -107,34 +112,35 @@ func UploadAvatar(req *request.UploadAvatarReq) (response.UploadAvatarResp, exce
 		return resp, exceptions.BadRequestError(errUserNotFound, exceptions.UserNotExistsError)
 	}
 
-	key := resourcemanager.GenerateObjectKey(resourcemanager.UserAvatarBucket, req.UserID, req.Avatar.Filename)
-
 	avatarFile, err := req.Avatar.Open()
 	if err != nil {
 		return resp, exceptions.InternalServerError(err)
 	}
 
-	data := make([]byte, 1024 * 1024 * 10)
-	n, err := avatarFile.Read(data)
+	data := make([]byte, req.Avatar.Size)
+	_, err = avatarFile.Read(data)
 	if err != nil {
 		return resp, exceptions.InternalServerError(err)
 	}
 
-	data = data[:n]
+	key := resourcemanager.GenerateObjectKey(req.Avatar.Filename)
+	path := resourcemanager.GetObjectPath(resourcemanager.UserBucket, req.UserID, key)
 
-	err = resourcemanager.UploadFile(resourcemanager.UserAvatarBucket, key, data)
+	err = resourcemanager.UploadFile(resourcemanager.UserBucket, path, data)
 	if err != nil {
 		return resp, exceptions.InternalServerError(err)
 	}
 
-	urlParts := strings.Split(user.Avatar, "/")
-	oldAvatarKey := urlParts[len(urlParts)-1]
+	oldKey := lib.SplitResourceURL(user.Avatar)
 
-	// http://ip/assert/key
-	user.Avatar = fmt.Sprintf("http://%s/assert/%s", app.GetConfig().Server.BaseIP, key)
+	user.Avatar = lib.GetResourceURL(int(resourcemanager.UserBucket), req.UserID, key)
 
 	// 忽略删除错误，由定时清理任务清除多余的文件
-	resourcemanager.DeleteFile(resourcemanager.UserAvatarBucket, resourcemanager.GetObjectPath(resourcemanager.UserAvatarBucket, req.UserID, oldAvatarKey))
+	resourcemanager.DeleteFile(resourcemanager.UserBucket, resourcemanager.GetObjectPath(resourcemanager.UserBucket, req.UserID, oldKey))
+	err = db.Update(user)
+	if err != nil {
+		return resp, exceptions.InternalServerError(err)
+	}
 
 	resp.Avatar = user.Avatar
 	return resp, nil
@@ -215,7 +221,8 @@ func Login(req *request.LoginReq) (response.LoginResp, exceptions.APIError) {
 
 	resp.AccessToken = accessToken
 	resp.RefreshToken = refreshToken
-
+	resp.UserID = user.ID
+	
 	return resp, nil
 }
 

@@ -7,6 +7,7 @@ import (
 )
 
 func BindRequest[T any](ctx *gin.Context, ptr T) exceptions.APIError {
+	ctx.ShouldBindUri(ptr)
 
 	switch ctx.ContentType() {
 	case gin.MIMEJSON:
@@ -26,8 +27,6 @@ func BindRequest[T any](ctx *gin.Context, ptr T) exceptions.APIError {
 			return exceptions.BadRequestError(err, exceptions.ParameterBindingError)
 		}
 	}
-
-	ctx.ShouldBindUri(ptr)
 
 	return nil
 }

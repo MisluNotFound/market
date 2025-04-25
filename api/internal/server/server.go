@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"runtime/debug"
@@ -23,6 +22,19 @@ type Server struct {
 
 func newServer(logger *zap.Logger) *Server {
 	engine := gin.New()
+	engine.Use(func(ctx *gin.Context) {
+		ctx.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		ctx.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE, PATCH")
+		ctx.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+		ctx.Writer.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
+
+		if ctx.Request.Method == "OPTIONS" {
+			ctx.AbortWithStatus(http.StatusNoContent) // 204
+			return
+		}
+
+		ctx.Next()
+	})
 
 	engine.Use(func(ctx *gin.Context) {
 		if ctx.Writer.Status() == http.StatusNotFound {
@@ -30,6 +42,8 @@ func newServer(logger *zap.Logger) *Server {
 		}
 
 		now := time.Now()
+		decodedUrl, _ := url.QueryUnescape(ctx.Request.RequestURI)
+
 		defer func() {
 			var (
 				abortErr error
@@ -40,8 +54,10 @@ func newServer(logger *zap.Logger) *Server {
 
 			if err := recover(); err != nil {
 				stackInfo := string(debug.Stack())
-				logger.Error("got panic", zap.String("panic", fmt.Sprintf("%+v", err)), zap.String("stack", stackInfo))
-
+				logger.Error("panic recovered",
+					zap.String("path", decodedUrl),
+					zap.Any("error", err),
+					zap.String("stack", stackInfo))
 				ctx.AbortWithStatus(http.StatusInternalServerError)
 			}
 
@@ -62,21 +78,34 @@ func newServer(logger *zap.Logger) *Server {
 				ctx.JSON(httpCode, apiError.ToResponse())
 			} else {
 				resp := controllers.GetPayLoad(ctx)
-				ctx.JSON(http.StatusOK, resp)
+				switch controllers.GetContentType(ctx) {
+				case controllers.ResponseTypeFile:
+					ctx.File(resp.Data.(string))
+				case controllers.ResponseTypeStream:
+					// TODO
+				case controllers.ResponseTypeJSON:
+					ctx.JSON(http.StatusOK, resp)
+				}
+
+				httpCode = http.StatusOK
+				msg = "success"
 			}
 
-			decodedUrl, _ := url.QueryUnescape(ctx.Request.RequestURI)
 			cost := time.Since(now).Seconds()
-
-			logger.Error(
-				"result",
-				zap.Any("method", ctx.Request.Method),
-				zap.Any("path", decodedUrl),
-				zap.Any("code", httpCode),
+			logFields := []zap.Field{
+				zap.String("method", ctx.Request.Method),
+				zap.String("path", decodedUrl),
+				zap.Int("code", httpCode),
 				zap.String("msg", msg),
-				zap.Any("cost", cost),
-				zap.Error(abortErr),
-			)
+				zap.Float64("cost", cost),
+			}
+
+			if httpCode >= 400 || ctx.IsAborted() {
+				logFields = append(logFields, zap.Error(abortErr))
+				logger.Error("request error", logFields...)
+			} else {
+				logger.Info("request success", logFields...)
+			}
 		}()
 
 		ctx.Next()
@@ -91,8 +120,9 @@ func Run() {
 	// init logger
 	logger := log.NewLogger()
 
+	dbLogger := log.NewLogger()
 	// init db
-	db.Init(logger)
+	db.Init(dbLogger)
 
 	// init resource manager
 	resourcemanager.InitGlobalResourceManager()
@@ -103,5 +133,5 @@ func Run() {
 	// init routers
 	server.serve()
 
-	select{}
+	select {}
 }

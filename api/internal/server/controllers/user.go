@@ -20,11 +20,11 @@ func CreateUser() func(c *gin.Context) {
 			return
 		}
 
-		Success(c, "ok")
+		Success(c, ResponseTypeJSON, "ok")
 	}
 }
 
-// PUT /api/user/{userID}/basic 
+// PUT /api/user/{userID}/basic
 func UpdateBasic() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		req := &request.UpdateBasicReq{}
@@ -38,7 +38,7 @@ func UpdateBasic() func(c *gin.Context) {
 			return
 		}
 
-		Success(c, "ok")
+		Success(c, ResponseTypeJSON, "ok")
 	}
 }
 
@@ -57,7 +57,7 @@ func UploadAvatar() func(c *gin.Context) {
 			return
 		}
 
-		Success(c, resp)
+		Success(c, ResponseTypeJSON, resp)
 	}
 }
 
@@ -75,7 +75,7 @@ func UpdatePassword() func(c *gin.Context) {
 			return
 		}
 
-		Success(c, "ok")
+		Success(c, ResponseTypeJSON, "ok")
 	}
 }
 
@@ -91,10 +91,10 @@ func Login() func(c *gin.Context) {
 		resp, err := service.Login(req)
 		if err != nil {
 			AbortWithError(c, err)
-			return 
+			return
 		}
 
-		Success(c, resp)
+		Success(c, ResponseTypeJSON, resp)
 	}
 }
 
@@ -110,15 +110,15 @@ func GetUserInfo() func(c *gin.Context) {
 		resp, err := service.GetUserInfo(req)
 		if err != nil {
 			AbortWithError(c, err)
-			return 
+			return
 		}
 
-		Success(c, resp)
+		Success(c, ResponseTypeJSON, resp)
 	}
 }
 
 func RefreshAccessToken() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		
+
 	}
 }

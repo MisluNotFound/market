@@ -1,0 +1,141 @@
+.product-detail-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 16px;
+  background: #fff;
+}
+
+.user-section {
+  display: flex;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.seller-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.seller-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.product-images {
+  margin: 16px 0;
+}
+
+.product-images img {
+  width: 300px;
+  height: 300px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.product-info {
+  padding: 16px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.product-title {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 12px;
+}
+
+.price-section {
+  margin: 16px 0;
+}
+
+.current-price {
+  font-size: 24px;
+  color: #ff5500;
+  font-weight: bold;
+}
+
+.original-price {
+  font-size: 14px;
+  color: #999;
+  text-decoration: line-through;
+  margin-left: 8px;
+}
+
+.product-meta {
+  display: flex;
+  justify-content: space-between;
+  color: #999;
+  font-size: 12px;
+  margin: 12px 0;
+}
+
+.product-description {
+  margin: 16px 0;
+}
+
+.product-description h3 {
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.product-description p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #333;
+}
+
+.action-bar {
+  position: relative;
+  display: flex;
+  background: #fff;
+  padding: 16px 0;
+  margin-top: 32px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.contact-btn {
+  flex: 1;
+  padding: 12px;
+  margin-right: 8px;
+  background: #fff;
+  border: 1px solid #ff5500;
+  color: #ff5500;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+.buy-btn {
+  flex: 1;
+  padding: 12px;
+  background: #ff5500;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+.loading,
+.error {
+  text-align: center;
+  padding: 40px;
+  font-size: 16px;
+  color: #666;
+}
+
+.shipping-price {
+  font-size: 14px;
+  color: #666;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background-color: #f5f5f5;
+  margin-left: 10px;
+}
+
+.shipping-price.free {
+  color: #52c41a;
+  background-color: #f6ffed;
+}

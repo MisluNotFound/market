@@ -17,10 +17,16 @@ func (s *Server) serve() {
 
 	userRouter := s.engine.Group("/api/user")
 	mockRouter := s.engine.Group("/api/mock")
+	productRouter := s.engine.Group("/api/product")
+	assertRouter := s.engine.Group("/api/assert")
+	orderRouter := s.engine.Group("/api/order")
 
 	// setup routers
 	s.registerUserGroup(userRouter)
 	s.registerMockGroup(mockRouter)
+	s.registerProductGroup(productRouter)
+	s.registerAssertGroup(assertRouter)
+	s.registerOrderGroup(orderRouter)
 
 	// run
 	srv := &http.Server{
@@ -62,4 +68,35 @@ func (s *Server) registerMockGroup(group *gin.RouterGroup) {
 	group.POST("", controllers.MockPost())
 	group.GET("", controllers.MockGet())
 	group.GET("/error", controllers.MockError())
+}
+
+func (s *Server) registerProductGroup(group *gin.RouterGroup) {
+	// TODO add auth
+	group.POST("/:userID", controllers.CreateProduct())
+	group.GET("/:userID/:productID", controllers.GetProduct())
+	group.PUT("/:userID/:productID", controllers.UpdateProduct())
+	group.PUT("/:userID/:productID/off-shelves", controllers.OffShelves())
+	group.PUT("/:userID/:productID/on-shelves", controllers.OnShelves())
+	group.PUT("/:userID/:productID/sold", controllers.SoldOut())
+	group.PUT("/:userID/:productID/selling", controllers.NotSold())
+	group.GET("/:userID", controllers.GetUserProducts())
+	group.GET("/products", controllers.GetProductList())
+	group.GET("/search", controllers.SearchProduct())
+}
+
+func (s *Server) registerAssertGroup(group *gin.RouterGroup) {
+	// TODO add auth
+	group.GET("/:type/:owner/:key", controllers.GetAssert())
+}
+
+func (s *Server) registerOrderGroup(group *gin.RouterGroup) {
+	group.POST("/:userID/:productID", controllers.PurchaseProduct())
+	group.GET("/:userID/list", controllers.GetOrderList())
+	group.GET("/:userID/:orderID", controllers.GetOrder())
+	group.PUT("/shipped/:userID/:orderID", controllers.ConfirmOrderShipped())
+	group.PUT("/signed/:userID/:orderID", controllers.ConfirmOrderSigned())
+	group.PUT("/pay/:userID/:orderID", controllers.PayOrder())
+	group.GET("/:userID/status", controllers.GetAllOrderStatus())
+	group.POST("/refund/:userID/:orderID", controllers.RefoundOrder())
+	group.PUT("/cancel/:userID/:orderID", controllers.CancelOrder())
 }

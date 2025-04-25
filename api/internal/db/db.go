@@ -38,6 +38,11 @@ func Init(zapLogger *zap.Logger) {
 func autoMigrate() error {
 	err := DB.AutoMigrate(
 		&models.User{},
+		&models.Product{},
+		&models.Category{},
+		&models.AttributeTemplate{},
+		&models.Order{},
 	)
+
 	return err
 }

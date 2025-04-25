@@ -9,6 +9,7 @@ type UploadAvatarResp struct {
 type LoginResp struct {
 	RefreshToken string `json:"refreshToken"`
 	AccessToken  string `json:"accessToken"`
+	UserID       string `json:"userID"`
 }
 
 type GetUserInfoResp struct {

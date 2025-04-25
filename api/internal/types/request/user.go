@@ -42,9 +42,3 @@ type LoginReq struct {
 type GetUserInfoReq struct {
 	UserIDReq
 }
-
-type GetAssertReq struct {
-	Owner string `form:"owner" binding:"required"`
-	Type  string `form:"type" binding:"required,oneof=avatar  product_video product_avatar chat_session temp_upload"`
-	Key   string `uri:"key" binding:"required"`
-}

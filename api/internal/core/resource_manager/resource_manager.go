@@ -14,10 +14,8 @@ import (
 type BucketType int
 
 const (
-	UserAvatarBucket BucketType = iota
-	ProductImageBucket
-	ProductVideoBucket
-	ProductAvatarBucket 
+	UserBucket BucketType = iota
+	ProductBucket
 	ChatSessionBucket
 	TempUploadBucket
 )
@@ -50,19 +48,15 @@ func InitGlobalResourceManager() {
 	globalResourceManager.ossClient = ossClient
 }
 
-func GenerateObjectKey(bucketType BucketType, owner string, filename string) string {
-	return GetObjectPath(bucketType, owner, genUniqueFilename(filename))
+func GenerateObjectKey(filename string) string {
+	return genUniqueFilename(filename)
 }
 
 func GetObjectPath(bucketType BucketType, owner string, key string) string {
 	switch bucketType {
-	case UserAvatarBucket:
+	case UserBucket:
 		return fmt.Sprintf("users/%s/%s", owner, key)
-	case ProductImageBucket:
-		return fmt.Sprintf("products/%s/%s", owner, key)
-	case ProductVideoBucket:
-		return fmt.Sprintf("products/%s/%s", owner, key)
-	case ProductAvatarBucket:
+	case ProductBucket:
 		return fmt.Sprintf("products/%s/%s", owner, key)
 	default:
 		return fmt.Sprintf("temp/%s", key)
@@ -76,21 +70,20 @@ func genUniqueFilename(origin string) string {
 	return fmt.Sprintf("%x%s", hash[:8], ext)
 }
 
-func UploadFile(bucketType BucketType, key string, data []byte) error {
-	// TODO 在bucket内部检查文件大小
+func UploadFile(bucketType BucketType, path string, data []byte) error {
 	switch bucketType {
-	case UserAvatarBucket:
-		return globalResourceManager.ossClient.Save(key, data)
+	default:
+		return globalResourceManager.ossClient.Save(path, data)
 	}
-
-	return nil
 }
 
 func DeleteFile(BucketType BucketType, key string) error {
 	switch BucketType {
-	case UserAvatarBucket:
+	default:
 		return globalResourceManager.ossClient.Delete(key)
 	}
+}
 
-	return nil
+func FileExists(path string) (bool, error) {
+	return globalResourceManager.ossClient.Exists(path)
 }

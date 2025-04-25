@@ -10,7 +10,7 @@ import (
 
 func MockGet() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		Success(c, "ok")
+		Success(c, ResponseTypeJSON, "ok")
 	}
 }
 
@@ -22,7 +22,7 @@ func MockPost() func(c *gin.Context) {
 			return
 		}
 		
-		Success(c, "ok")
+		Success(c, ResponseTypeJSON, "ok")
 	}
 }
 
