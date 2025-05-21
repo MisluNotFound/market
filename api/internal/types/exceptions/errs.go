@@ -40,4 +40,9 @@ const (
 	OrderNotToBePaidError    = "Order's status is not to be paid."
 	OrderNotRelatedError     = "You are not related with this order."
 	OrderCanNotCanceled      = "Order can not be canceled."
+
+	// conversation related errors
+
+	UnsupportedFileTypeError = "Unsupported file type error"
+	ImageFileSizeExceedError = "Image file size exceeded"
 )

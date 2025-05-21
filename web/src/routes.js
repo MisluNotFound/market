@@ -9,6 +9,9 @@ import Orders from './pages/Orders';
 import OrderDetail from './pages/OrderDetail';
 import CreateProduct from './pages/CreateProduct';
 import ProductDetail from './pages/ProductDetail';
+import EditProduct from './pages/EditProduct';
+import MyProducts from './pages/MyProducts';
+import Chat from './components/Chat';
 import AuthService from './services/auth';
 
 const protectedLoader = async () => {
@@ -55,6 +58,21 @@ const router = createBrowserRouter([
       {
         path: '/product/:id',
         element: <ProductDetail />,
+        loader: protectedLoader
+      },
+      {
+        path: '/my-products',
+        element: <MyProducts />,
+        loader: protectedLoader
+      },
+      {
+        path: '/edit-product/:id',
+        element: <EditProduct />,
+        loader: protectedLoader
+      },
+      {
+        path: '/chat',
+        element: <Chat userId="current-user-id" />,
         loader: protectedLoader
       },
     ],

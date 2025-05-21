@@ -7,8 +7,10 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mislu/market-api/internal/core/im"
 	resourcemanager "github.com/mislu/market-api/internal/core/resource_manager"
 	"github.com/mislu/market-api/internal/db"
+	"github.com/mislu/market-api/internal/es"
 	"github.com/mislu/market-api/internal/server/controllers"
 	"github.com/mislu/market-api/internal/types/exceptions"
 	"github.com/mislu/market-api/internal/utils/log"
@@ -124,6 +126,9 @@ func Run() {
 	// init db
 	db.Init(dbLogger)
 
+	es.Init()
+
+	im.Init()
 	// init resource manager
 	resourcemanager.InitGlobalResourceManager()
 

@@ -24,6 +24,6 @@ func (User) TableName() string {
 	return "user"
 }
 
-func (u *User) Exists() bool {
+func (u User) Exists() bool {
 	return len(u.ID) > 0
 }

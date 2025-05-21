@@ -25,7 +25,7 @@ func CreateProduct() func(c *gin.Context) {
 	}
 }
 
-// GET /api/product/{userID}/{productID}
+// GET /api/product/{productID}
 // TODO verify if userID or productID is empty
 func GetProduct() func(c *gin.Context) {
 	return func(c *gin.Context) {
@@ -182,23 +182,55 @@ func GetProductList() func(c *gin.Context) {
 	}
 }
 
-// get /api/product/search
-func SearchProduct() func(c *gin.Context) {
+// // get /api/product/search
+// func SearchProduct() func(c *gin.Context) {
+// 	return func(c *gin.Context) {
+// 		req := &request.SearchProductReq{}
+// 		if err := BindRequest(c, req); err != nil {
+// 			AbortWithError(c, err)
+// 			return
+// 		}
+
+// 		req.PageReq.Fill()
+
+// 		resp, err := service.SearchProduct(req)
+// 		if err != nil {
+// 			AbortWithError(c, err)
+// 			return
+// 		}
+
+// 		Success(c, ResponseTypeJSON, resp)
+// 	}
+// }
+
+// get /api/product/category
+func GetAllCategory() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		req := &request.SearchProductReq{}
-		if err := BindRequest(c, req); err != nil {
-			AbortWithError(c, err)
-			return
-		}
-
-		req.PageReq.Fill()
-
-		resp, err := service.SearchProduct(req)
+		resp, err := service.GetAllCategory()
 		if err != nil {
 			AbortWithError(c, err)
 			return
 		}
 
 		Success(c, ResponseTypeJSON, resp)
+	}
+}
+
+// put /api/product/{userID}/{productID}/price
+func UpdateProductPrice() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		req := &request.UpdateProductPriceReq{}
+		if err := BindRequest(c, req); err != nil {
+			AbortWithError(c, err)
+			return
+		}
+
+		err := service.UpdateProductPrice(req)
+		if err != nil {
+			AbortWithError(c, err)
+			return
+		}
+
+		Success(c, ResponseTypeJSON, "ok")
 	}
 }

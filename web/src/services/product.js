@@ -45,7 +45,7 @@ const ProductService = {
   // 下架商品
   offShelves: async (userId, productId) => {
     try {
-      const response = await axios.put(`${API_BASE_URL}/${userId}/${productId}/off-shelves`);
+      const response = await axios.put(`${API_BASE_URL}/product/${userId}/${productId}/off-shelves`);
       return response.data;
     } catch (error) {
       throw error.response.data;
@@ -55,7 +55,7 @@ const ProductService = {
   // 上架商品
   onShelves: async (userId, productId) => {
     try {
-      const response = await axios.put(`${API_BASE_URL}/${userId}/${productId}/on-shelves`);
+      const response = await axios.put(`${API_BASE_URL}/product/${userId}/${productId}/on-shelves`);
       return response.data;
     } catch (error) {
       throw error.response.data;
@@ -65,7 +65,16 @@ const ProductService = {
   // 标记为已售出
   soldOut: async (userId, productId) => {
     try {
-      const response = await axios.put(`${API_BASE_URL}/${userId}/${productId}/sold`);
+      const response = await axios.put(`${API_BASE_URL}/product/${userId}/${productId}/sold`);
+      return response.data;
+    } catch (error) {
+      throw error.response.data;
+    }
+  },
+
+  selling: async (userId, productId) => {
+    try {
+      const response = await axios.put(`${API_BASE_URL}/product/${userId}/${productId}/selling`);
       return response.data;
     } catch (error) {
       throw error.response.data;
@@ -106,12 +115,36 @@ const ProductService = {
 
   searchProducts: async (keyword, page = 1, size = 10) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/product/search`, {
+      const response = await axios.post(`${API_BASE_URL}/search/products`, {
+        keyword
+      }, {
         params: {
-          keyword,
           page,
           size
         }
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response.data;
+    }
+  },
+
+  // 获取商品分类
+  getCategories: async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/product/category`);
+      return response.data;
+    } catch (error) {
+      throw error.response.data;
+    }
+  },
+
+  // 获取用户商品列表
+  getUserProducts: async (page = 1, size = 10) => {
+    try {
+      const userId = localStorage.getItem("userId")
+      const response = await axios.get(`${API_BASE_URL}/product/${userId}`, {
+        params: { page, size }
       });
       return response.data;
     } catch (error) {

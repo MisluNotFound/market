@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { FaHome, FaPlusCircle, FaUser } from 'react-icons/fa';
+import { FaHome, FaPlusCircle, FaUser, FaComments } from 'react-icons/fa';
 import '../styles/navbar.css';
 
 const Navbar = () => {
@@ -11,6 +11,10 @@ const Navbar = () => {
       </Link>
       <Link to="/create-product" className="nav-item add-button">
         <FaPlusCircle className="nav-icon" />
+      </Link>
+      <Link to="/chat" className="nav-item">
+        <FaComments className="nav-icon" />
+        <span>聊天</span>
       </Link>
       <Link to="/user-center" className="nav-item">
         <FaUser className="nav-icon" />

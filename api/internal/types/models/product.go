@@ -1,6 +1,11 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
 
 type Product struct {
 	Model
@@ -9,6 +14,8 @@ type Product struct {
 	Price         float64 `gorm:"column:price;type:decimal(10,2);not null;" json:"price"`
 	Describe      string  `gorm:"column:describe;type:varchar(255);not null;" json:"describe"`
 	Pics          string  `gorm:"column:pics;type:varchar(500);not null;" json:"avatar"`
+	Condition     string  `gorm:"column:condition;varchar(20)" json:"condition"`
+	UsedTime      string  `gorm:"column:usedTime;varchar(20)" json:"usedTime"`
 
 	ShippingMethod string    `gorm:"column:shipping_method;type:varchar(50);not null;" json:"shippingMethod"`
 	ShippingPrise  float64   `gorm:"column:shipping_price;type:decimal(10,2);not null;" json:"shippingPrice"`
@@ -31,4 +38,11 @@ func (p Product) Exists() bool {
 
 func (p Product) IsOwner(userID string) bool {
 	return p.UserID == userID
+}
+
+func (p *Product) BeforeCreate(tx *gorm.DB) error {
+	if p.ID == "" {
+		p.ID = uuid.New().String()
+	}
+	return nil
 }

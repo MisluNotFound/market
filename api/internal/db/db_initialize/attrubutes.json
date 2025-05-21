@@ -1,0 +1,822 @@
+[
+    {
+        "name": "尺寸",
+        "dataType": "ENUM",
+        "required": true,
+        "options": [
+            "S",
+            "M",
+            "L",
+            "XL"
+        ],
+        "unit": ""
+    },
+    {
+        "name": "颜色",
+        "dataType": "STRING",
+        "required": true,
+        "options": [],
+        "unit": ""
+    },
+    {
+        "name": "面料",
+        "dataType": "STRING",
+        "required": false,
+        "options": [],
+        "unit": ""
+    },
+    {
+        "name": "袖长",
+        "dataType": "ENUM",
+        "required": false,
+        "options": [
+            "短袖",
+            "长袖"
+        ],
+        "unit": ""
+    },
+    {
+        "name": "尺寸",
+        "dataType": "ENUM",
+        "required": true,
+        "options": [
+            "39",
+            "40",
+            "41",
+            "42"
+        ],
+        "unit": ""
+    },
+    {
+        "name": "颜色",
+        "dataType": "STRING",
+        "required": true,
+        "options": [],
+        "unit": ""
+    },
+    {
+        "name": "领型",
+        "dataType": "ENUM",
+        "required": false,
+        "options": [
+            "立领",
+            "翻领"
+        ],
+        "unit": ""
+    },
+    {
+        "name": "面料成分",
+        "dataType": "STRING",
+        "required": false,
+        "options": [],
+        "unit": ""
+    },
+    {
+        "name": "尺码",
+        "dataType": "ENUM",
+        "required": true,
+        "options": [
+            "XS",
+            "S",
+            "M",
+            "L"
+        ],
+        "unit": ""
+    },
+    {
+        "name": "颜色",
+        "dataType": "STRING",
+        "required": true,
+        "options": [],
+        "unit": ""
+    },
+    {
+        "name": "裙长",
+        "dataType": "ENUM",
+        "required": false,
+        "options": [
+            "迷你",
+            "及膝",
+            "长款"
+        ],
+        "unit": ""
+    },
+    {
+        "name": "面料",
+        "dataType": "STRING",
+        "required": false,
+        "options": [],
+        "unit": ""
+    },
+    {
+        "name": "尺码",
+        "dataType": "ENUM",
+        "required": true,
+        "options": [
+            "S",
+            "M",
+            "L"
+        ],
+        "unit": ""
+    },
+    {
+        "name": "颜色",
+        "dataType": "STRING",
+        "required": true,
+        "options": [],
+        "unit": ""
+    },
+    {
+        "name": "裙长",
+        "dataType": "ENUM",
+        "required": false,
+        "options": [
+            "迷你",
+            "及膝",
+            "中长"
+        ],
+        "unit": ""
+    },
+    {
+        "name": "面料",
+        "dataType": "STRING",
+        "required": false,
+        "options": [],
+        "unit": ""
+    },
+    {
+        "name": "品牌",
+        "dataType": "STRING",
+        "required": true,
+        "options": [],
+        "unit": ""
+    },
+    {
+        "name": "型号",
+        "dataType": "STRING",
+        "required": true,
+        "options": [],
+        "unit": ""
+    },
+    {
+        "name": "屏幕尺寸",
+        "dataType": "NUMBER",
+        "required": true,
+        "options": [],
+        "unit": "英寸"
+    },
+    {
+        "name": "存储容量",
+        "dataType": "ENUM",
+        "required": true,
+        "options": [
+            "64GB",
+            "128GB",
+            "256GB"
+        ],
+        "unit": ""
+    },
+    {
+        "name": "运行内存",
+        "dataType": "ENUM",
+        "required": true,
+        "options": [
+            "4GB",
+            "6GB",
+            "8GB"
+        ],
+        "unit": ""
+    },
+    {
+        "name": "电池容量",
+        "dataType": "NUMBER",
+        "required": false,
+        "options": [],
+        "unit": "mAh"
+    },
+    {
+        "name": "品牌",
+        "dataType": "STRING",
+        "required": true,
+        "options": [],
+        "unit": ""
+    },
+    {
+        "name": "电池容量",
+        "dataType": "NUMBER",
+        "required": true,
+        "options": [],
+        "unit": "mAh"
+    },
+    {
+        "name": "是否带摄像头",
+        "dataType": "BOOLEAN",
+        "required": false,
+        "options": [],
+        "unit": ""
+    },
+    {
+        "name": "品牌",
+        "dataType": "STRING",
+        "required": true,
+        "options": [],
+        "unit": ""
+    },
+    {
+        "name": "型号",
+        "dataType": "STRING",
+        "required": true,
+        "options": [],
+        "unit": ""
+    },
+    {
+        "name": "CPU",
+        "dataType": "STRING",
+        "required": true,
+        "options": [],
+        "unit": ""
+    },
+    {
+        "name": "内存",
+        "dataType": "ENUM",
+        "required": true,
+        "options": [
+            "8GB",
+            "16GB",
+            "32GB"
+        ],
+        "unit": ""
+    },
+    {
+        "name": "存储",
+        "dataType": "ENUM",
+        "required": true,
+        "options": [
+            "256GB",
+            "512GB",
+            "1TB"
+        ],
+        "unit": ""
+    },
+    {
+        "name": "屏幕尺寸",
+        "dataType": "NUMBER",
+        "required": false,
+        "options": [],
+        "unit": "英寸"
+    },
+    {
+        "name": "容量",
+        "dataType": "NUMBER",
+        "required": true,
+        "options": [],
+        "unit": "L"
+    },
+    {
+        "name": "功率",
+        "dataType": "NUMBER",
+        "required": true,
+        "options": [],
+        "unit": "W"
+    },
+    {
+        "name": "是否烧烤",
+        "dataType": "BOOLEAN",
+        "required": false,
+        "options": [],
+        "unit": ""
+    },
+    {
+        "name": "容量",
+        "dataType": "NUMBER",
+        "required": true,
+        "options": [],
+        "unit": "L"
+    },
+    {
+        "name": "功率",
+        "dataType": "NUMBER",
+        "required": true,
+        "options": [],
+        "unit": "W"
+    },
+    {
+        "name": "功能模式",
+        "dataType": "ENUM",
+        "required": false,
+        "options": [
+            "普通",
+            "智能",
+            "高压"
+        ],
+        "unit": ""
+    },
+    {
+        "name": "功率",
+        "dataType": "NUMBER",
+        "required": true,
+        "options": [],
+        "unit": "W"
+    },
+    {
+        "name": "集尘容量",
+        "dataType": "NUMBER",
+        "required": false,
+        "options": [],
+        "unit": "L"
+    },
+    {
+        "name": "是否无线",
+        "dataType": "BOOLEAN",
+        "required": false,
+        "options": [],
+        "unit": ""
+    },
+    {
+        "name": "适用面积",
+        "dataType": "NUMBER",
+        "required": true,
+        "options": [],
+        "unit": "㎡"
+    },
+    {
+        "name": "滤网类型",
+        "dataType": "ENUM",
+        "required": false,
+        "options": [
+            "HEPA",
+            "活性炭",
+            "复合"
+        ],
+        "unit": ""
+    },
+    {
+        "name": "噪音水平",
+        "dataType": "NUMBER",
+        "required": false,
+        "options": [],
+        "unit": "dB"
+    },
+    {
+        "name": "容量",
+        "dataType": "NUMBER",
+        "required": true,
+        "options": [],
+        "unit": "ml"
+    },
+    {
+        "name": "肤质",
+        "dataType": "ENUM",
+        "required": false,
+        "options": [
+            "干性",
+            "油性",
+            "混合"
+        ],
+        "unit": ""
+    },
+    {
+        "name": "SPF",
+        "dataType": "NUMBER",
+        "required": false,
+        "options": [],
+        "unit": ""
+    },
+    {
+        "name": "容量",
+        "dataType": "NUMBER",
+        "required": true,
+        "options": [],
+        "unit": "ml"
+    },
+    {
+        "name": "肤质",
+        "dataType": "ENUM",
+        "required": false,
+        "options": [
+            "敏感",
+            "油性",
+            "干性"
+        ],
+        "unit": ""
+    },
+    {
+        "name": "色号",
+        "dataType": "STRING",
+        "required": true,
+        "options": [],
+        "unit": ""
+    },
+    {
+        "name": "质地",
+        "dataType": "ENUM",
+        "required": false,
+        "options": [
+            "哑光",
+            "滋润",
+            "丝绒"
+        ],
+        "unit": ""
+    },
+    {
+        "name": "净含量",
+        "dataType": "NUMBER",
+        "required": false,
+        "options": [],
+        "unit": "g"
+    },
+    {
+        "name": "类型",
+        "dataType": "ENUM",
+        "required": true,
+        "options": [
+            "浓密",
+            "纤长"
+        ],
+        "unit": ""
+    },
+    {
+        "name": "净含量",
+        "dataType": "NUMBER",
+        "required": false,
+        "options": [],
+        "unit": "ml"
+    },
+    {
+        "name": "容量",
+        "dataType": "NUMBER",
+        "required": true,
+        "options": [],
+        "unit": "ml"
+    },
+    {
+        "name": "材质",
+        "dataType": "ENUM",
+        "required": true,
+        "options": [
+            "硅胶",
+            "塑料",
+            "玻璃"
+        ],
+        "unit": ""
+    },
+    {
+        "name": "奶嘴尺寸",
+        "dataType": "ENUM",
+        "required": false,
+        "options": [
+            "S",
+            "M",
+            "L"
+        ],
+        "unit": ""
+    },
+    {
+        "name": "适用体重",
+        "dataType": "ENUM",
+        "required": true,
+        "options": [
+            "0–3kg",
+            "3–6kg",
+            "6–9kg"
+        ],
+        "unit": ""
+    },
+    {
+        "name": "片数",
+        "dataType": "NUMBER",
+        "required": true,
+        "options": [],
+        "unit": "片"
+    },
+    {
+        "name": "材质",
+        "dataType": "ENUM",
+        "required": false,
+        "options": [
+            "纸质",
+            "棉质"
+        ],
+        "unit": ""
+    },
+    {
+        "name": "尺码",
+        "dataType": "ENUM",
+        "required": true,
+        "options": [
+            "S",
+            "M",
+            "L"
+        ],
+        "unit": ""
+    },
+    {
+        "name": "材质",
+        "dataType": "STRING",
+        "required": false,
+        "options": [],
+        "unit": ""
+    },
+    {
+        "name": "季节",
+        "dataType": "ENUM",
+        "required": false,
+        "options": [
+            "春",
+            "夏",
+            "秋",
+            "冬"
+        ],
+        "unit": ""
+    },
+    {
+        "name": "材质",
+        "dataType": "STRING",
+        "required": true,
+        "options": [],
+        "unit": ""
+    },
+    {
+        "name": "长度",
+        "dataType": "NUMBER",
+        "required": false,
+        "options": [],
+        "unit": "cm"
+    },
+    {
+        "name": "形状",
+        "dataType": "ENUM",
+        "required": false,
+        "options": [
+            "U型",
+            "C型"
+        ],
+        "unit": ""
+    },
+    {
+        "name": "最高速度",
+        "dataType": "NUMBER",
+        "required": true,
+        "options": [],
+        "unit": "km/h"
+    },
+    {
+        "name": "马达功率",
+        "dataType": "NUMBER",
+        "required": false,
+        "options": [],
+        "unit": "HP"
+    },
+    {
+        "name": "最大倾斜度",
+        "dataType": "ENUM",
+        "required": false,
+        "options": [
+            "0%",
+            "5%",
+            "10%"
+        ],
+        "unit": ""
+    },
+    {
+        "name": "重量",
+        "dataType": "NUMBER",
+        "required": true,
+        "options": [],
+        "unit": "kg"
+    },
+    {
+        "name": "材质",
+        "dataType": "STRING",
+        "required": false,
+        "options": [],
+        "unit": ""
+    },
+    {
+        "name": "容纳人数",
+        "dataType": "ENUM",
+        "required": true,
+        "options": [
+            "1人",
+            "2人",
+            "3人"
+        ],
+        "unit": ""
+    },
+    {
+        "name": "材质",
+        "dataType": "STRING",
+        "required": false,
+        "options": [],
+        "unit": ""
+    },
+    {
+        "name": "重量",
+        "dataType": "NUMBER",
+        "required": false,
+        "options": [],
+        "unit": "kg"
+    },
+    {
+        "name": "适用温度",
+        "dataType": "NUMBER",
+        "required": true,
+        "options": [],
+        "unit": "℃"
+    },
+    {
+        "name": "材质",
+        "dataType": "STRING",
+        "required": false,
+        "options": [],
+        "unit": ""
+    },
+    {
+        "name": "重量",
+        "dataType": "NUMBER",
+        "required": false,
+        "options": [],
+        "unit": "kg"
+    },
+    {
+        "name": "块数",
+        "dataType": "NUMBER",
+        "required": true,
+        "options": [],
+        "unit": "块"
+    },
+    {
+        "name": "颜色数",
+        "dataType": "NUMBER",
+        "required": false,
+        "options": [],
+        "unit": ""
+    },
+    {
+        "name": "材质",
+        "dataType": "STRING",
+        "required": false,
+        "options": [],
+        "unit": ""
+    },
+    {
+        "name": "块数",
+        "dataType": "NUMBER",
+        "required": true,
+        "options": [],
+        "unit": "块"
+    },
+    {
+        "name": "木材类型",
+        "dataType": "ENUM",
+        "required": false,
+        "options": [
+            "橡木",
+            "松木",
+            "榉木"
+        ],
+        "unit": ""
+    },
+    {
+        "name": "块数",
+        "dataType": "NUMBER",
+        "required": true,
+        "options": [],
+        "unit": "块"
+    },
+    {
+        "name": "吸力等级",
+        "dataType": "ENUM",
+        "required": false,
+        "options": [
+            "弱",
+            "中",
+            "强"
+        ],
+        "unit": ""
+    },
+    {
+        "name": "电池类型",
+        "dataType": "ENUM",
+        "required": true,
+        "options": [
+            "AA",
+            "AAA",
+            "锂电"
+        ],
+        "unit": ""
+    },
+    {
+        "name": "控制距离",
+        "dataType": "NUMBER",
+        "required": false,
+        "options": [],
+        "unit": "m"
+    },
+    {
+        "name": "作者",
+        "dataType": "STRING",
+        "required": true,
+        "options": [],
+        "unit": ""
+    },
+    {
+        "name": "出版社",
+        "dataType": "STRING",
+        "required": false,
+        "options": [],
+        "unit": ""
+    },
+    {
+        "name": "出版日期",
+        "dataType": "DATE",
+        "required": false,
+        "options": [],
+        "unit": ""
+    },
+    {
+        "name": "作者",
+        "dataType": "STRING",
+        "required": true,
+        "options": [],
+        "unit": ""
+    },
+    {
+        "name": "页数",
+        "dataType": "NUMBER",
+        "required": false,
+        "options": [],
+        "unit": "页"
+    },
+    {
+        "name": "作者",
+        "dataType": "STRING",
+        "required": true,
+        "options": [],
+        "unit": ""
+    },
+    {
+        "name": "页数",
+        "dataType": "NUMBER",
+        "required": false,
+        "options": [],
+        "unit": "页"
+    },
+    {
+        "name": "类型",
+        "dataType": "ENUM",
+        "required": false,
+        "options": [
+            "言情",
+            "科幻",
+            "悬疑",
+            "历史"
+        ],
+        "unit": ""
+    },
+    {
+        "name": "续航时长",
+        "dataType": "NUMBER",
+        "required": true,
+        "options": [],
+        "unit": "h"
+    },
+    {
+        "name": "连接距离",
+        "dataType": "NUMBER",
+        "required": false,
+        "options": [],
+        "unit": "m"
+    },
+    {
+        "name": "降噪功能",
+        "dataType": "BOOLEAN",
+        "required": false,
+        "options": [],
+        "unit": ""
+    },
+    {
+        "name": "连接方式",
+        "dataType": "ENUM",
+        "required": true,
+        "options": [
+            "有线",
+            "无线"
+        ],
+        "unit": ""
+    },
+    {
+        "name": "DPI",
+        "dataType": "NUMBER",
+        "required": false,
+        "options": [],
+        "unit": ""
+    },
+    {
+        "name": "按键数量",
+        "dataType": "NUMBER",
+        "required": false,
+        "options": [],
+        "unit": ""
+    }
+]

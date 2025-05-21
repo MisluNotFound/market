@@ -16,7 +16,7 @@ type BucketType int
 const (
 	UserBucket BucketType = iota
 	ProductBucket
-	ChatSessionBucket
+	ConversationBucket
 	TempUploadBucket
 )
 
@@ -38,7 +38,7 @@ type ResourceManager struct {
 
 func InitGlobalResourceManager() {
 	config := app.GetConfig().OSS
-	
+
 	var ossClient oss.OSS
 	switch config.Type {
 	case LOCAL_STORAGE:
@@ -62,7 +62,6 @@ func GetObjectPath(bucketType BucketType, owner string, key string) string {
 		return fmt.Sprintf("temp/%s", key)
 	}
 }
-
 
 func genUniqueFilename(origin string) string {
 	ext := filepath.Ext(origin)

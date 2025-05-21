@@ -1,6 +1,9 @@
 package request
 
-import "mime/multipart"
+import (
+	"mime/multipart"
+	"time"
+)
 
 type ProductIDReq struct {
 	ProductID string `uri:"productID" binding:"required"`
@@ -8,16 +11,33 @@ type ProductIDReq struct {
 
 type CreateProductReq struct {
 	UserIDReq
-	OriginalPrice float64                 `form:"originalPrice"`
-	Price         float64                 `form:"price" binding:"required"`
-	Describe      string                  `form:"describe" binding:"required"`
-	Pics          []*multipart.FileHeader `form:"pics" binding:"required,min=1,max=5"`
-	ShipMethod    string                  `form:"shipMethod" binding:"required,oneof=included fixed"`
-	ShipPrice     float64                 `form:"shipPrice"`
-	CanSelfPickup bool                    `form:"canSelfPickup"`
+	OriginalPrice float64                 `json:"originalPrice" form:"originalPrice"`
+	Price         float64                 `json:"price" form:"price" binding:"required"`
+	Describe      string                  `json:"describe" form:"describe" binding:"required"`
+	Pics          []*multipart.FileHeader `json:"pics" form:"pics" binding:"required,min=1,max=5"`
+	ShipMethod    string                  `json:"shipMethod" form:"shipMethod" binding:"required,oneof=included fixed"`
+	ShipPrice     float64                 `json:"shipPrice" form:"shipPrice"`
+	CanSelfPickup bool                    `json:"canSelfPickup" form:"canSelfPickup"`
+	Condition     string                  `json:"condition" form:"condition" binding:"required,oneof=new excellent good used"`
+	UsedTime      string                  `form:"usedTime"`
 	// TODO location
 
-	// TODO 分类
+	Categories     []uint `form:"categories" binding:"required"`
+	AttributesJson string `form:"attributes" binding:"required"`
+}
+
+type ProductDocument struct {
+	ID         string        `json:"id"`
+	Describe   string        `json:"describe"`
+	Category   []string      `json:"category"`
+	CreatedAt  time.Time     `json:"created_at"`
+	Attributes []AttributeES `json:"attributes"`
+}
+
+// AttributeES 定义嵌套 attributes 字段
+type AttributeES struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
 }
 
 type GetProductReq struct {
@@ -28,18 +48,17 @@ type GetProductReq struct {
 type UpdateProductReq struct {
 	UserIDReq
 	ProductIDReq
-	OriginalPrice float64                 `form:"originalPrice"`
-	Price         float64                 `form:"price" binding:"required"`
+	OriginalPrice float64                 `form:"originalPrice" binding:"required,gt=0"`
+	Price         float64                 `form:"price" binding:"required,gt=0"`
 	Describe      string                  `form:"describe" binding:"required"`
 	DeletedPics   []string                `form:"deletedPics"`
 	AddedPics     []*multipart.FileHeader `form:"addedPics"`
 	ShipMethod    string                  `form:"shipMethod" binding:"required,oneof=included fixed"`
-	ShipPrice     int                     `form:"shipPrice" binding:"required"`
+	ShipPrice     int                     `form:"shipPrice" binding:"required,gt=0"`
 	CanSelfPickup bool                    `form:"canSelfPickup"`
-
 	// TODO location
-
-	// TODO 分类
+	Categories     []uint `form:"categories" binding:"required"`
+	AttributesJson string `form:"attributes" binding:"required"`
 }
 
 type UpdateProductStatusReq struct {
@@ -71,7 +90,8 @@ type GetProductListReq struct {
 	PageReq
 }
 
-type SearchProductReq struct {
-	PageReq
-	Keyword string `form:"keyword" binding:"required"`
+type UpdateProductPriceReq struct {
+	UserIDReq
+	ProductIDReq
+	Price float64 `form:"price" binding:"required,gt=0"`
 }

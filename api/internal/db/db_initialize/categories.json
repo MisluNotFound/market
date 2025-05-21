@@ -1,0 +1,338 @@
+[
+    {
+        "level": 1,
+        "typeName": "服装",
+        "parentName": "",
+        "isLeaf": false
+    },
+    {
+        "level": 2,
+        "typeName": "男装",
+        "parentName": "服装",
+        "isLeaf": false
+    },
+    {
+        "level": 3,
+        "typeName": "T恤",
+        "parentName": "男装",
+        "isLeaf": true
+    },
+    {
+        "level": 3,
+        "typeName": "衬衫",
+        "parentName": "男装",
+        "isLeaf": true
+    },
+    {
+        "level": 2,
+        "typeName": "女装",
+        "parentName": "服装",
+        "isLeaf": false
+    },
+    {
+        "level": 3,
+        "typeName": "连衣裙",
+        "parentName": "女装",
+        "isLeaf": true
+    },
+    {
+        "level": 3,
+        "typeName": "半身裙",
+        "parentName": "女装",
+        "isLeaf": true
+    },
+    {
+        "level": 1,
+        "typeName": "数码产品",
+        "parentName": "",
+        "isLeaf": false
+    },
+    {
+        "level": 2,
+        "typeName": "手机",
+        "parentName": "数码产品",
+        "isLeaf": false
+    },
+    {
+        "level": 3,
+        "typeName": "智能手机",
+        "parentName": "手机",
+        "isLeaf": true
+    },
+    {
+        "level": 3,
+        "typeName": "功能手机",
+        "parentName": "手机",
+        "isLeaf": true
+    },
+    {
+        "level": 2,
+        "typeName": "笔记本电脑",
+        "parentName": "数码产品",
+        "isLeaf": true
+    },
+    {
+        "level": 1,
+        "typeName": "家用电器",
+        "parentName": "",
+        "isLeaf": false
+    },
+    {
+        "level": 2,
+        "typeName": "厨房电器",
+        "parentName": "家用电器",
+        "isLeaf": false
+    },
+    {
+        "level": 3,
+        "typeName": "微波炉",
+        "parentName": "厨房电器",
+        "isLeaf": true
+    },
+    {
+        "level": 3,
+        "typeName": "电饭煲",
+        "parentName": "厨房电器",
+        "isLeaf": true
+    },
+    {
+        "level": 2,
+        "typeName": "生活电器",
+        "parentName": "家用电器",
+        "isLeaf": false
+    },
+    {
+        "level": 3,
+        "typeName": "吸尘器",
+        "parentName": "生活电器",
+        "isLeaf": true
+    },
+    {
+        "level": 3,
+        "typeName": "空气净化器",
+        "parentName": "生活电器",
+        "isLeaf": true
+    },
+    {
+        "level": 1,
+        "typeName": "美妆个护",
+        "parentName": "",
+        "isLeaf": false
+    },
+    {
+        "level": 2,
+        "typeName": "护肤",
+        "parentName": "美妆个护",
+        "isLeaf": false
+    },
+    {
+        "level": 3,
+        "typeName": "面霜",
+        "parentName": "护肤",
+        "isLeaf": true
+    },
+    {
+        "level": 3,
+        "typeName": "洁面",
+        "parentName": "护肤",
+        "isLeaf": true
+    },
+    {
+        "level": 2,
+        "typeName": "彩妆",
+        "parentName": "美妆个护",
+        "isLeaf": false
+    },
+    {
+        "level": 3,
+        "typeName": "口红",
+        "parentName": "彩妆",
+        "isLeaf": true
+    },
+    {
+        "level": 3,
+        "typeName": "睫毛膏",
+        "parentName": "彩妆",
+        "isLeaf": true
+    },
+    {
+        "level": 1,
+        "typeName": "母婴用品",
+        "parentName": "",
+        "isLeaf": false
+    },
+    {
+        "level": 2,
+        "typeName": "婴儿用品",
+        "parentName": "母婴用品",
+        "isLeaf": false
+    },
+    {
+        "level": 3,
+        "typeName": "奶瓶",
+        "parentName": "婴儿用品",
+        "isLeaf": true
+    },
+    {
+        "level": 3,
+        "typeName": "尿布",
+        "parentName": "婴儿用品",
+        "isLeaf": true
+    },
+    {
+        "level": 2,
+        "typeName": "孕妇用品",
+        "parentName": "母婴用品",
+        "isLeaf": false
+    },
+    {
+        "level": 3,
+        "typeName": "孕妇装",
+        "parentName": "孕妇用品",
+        "isLeaf": true
+    },
+    {
+        "level": 3,
+        "typeName": "孕妇枕",
+        "parentName": "孕妇用品",
+        "isLeaf": true
+    },
+    {
+        "level": 1,
+        "typeName": "运动户外",
+        "parentName": "",
+        "isLeaf": false
+    },
+    {
+        "level": 2,
+        "typeName": "健身器材",
+        "parentName": "运动户外",
+        "isLeaf": false
+    },
+    {
+        "level": 3,
+        "typeName": "跑步机",
+        "parentName": "健身器材",
+        "isLeaf": true
+    },
+    {
+        "level": 3,
+        "typeName": "哑铃",
+        "parentName": "健身器材",
+        "isLeaf": true
+    },
+    {
+        "level": 2,
+        "typeName": "户外装备",
+        "parentName": "运动户外",
+        "isLeaf": false
+    },
+    {
+        "level": 3,
+        "typeName": "帐篷",
+        "parentName": "户外装备",
+        "isLeaf": true
+    },
+    {
+        "level": 3,
+        "typeName": "睡袋",
+        "parentName": "户外装备",
+        "isLeaf": true
+    },
+    {
+        "level": 1,
+        "typeName": "玩具",
+        "parentName": "",
+        "isLeaf": false
+    },
+    {
+        "level": 2,
+        "typeName": "积木",
+        "parentName": "玩具",
+        "isLeaf": false
+    },
+    {
+        "level": 3,
+        "typeName": "塑料积木",
+        "parentName": "积木",
+        "isLeaf": true
+    },
+    {
+        "level": 3,
+        "typeName": "木质积木",
+        "parentName": "积木",
+        "isLeaf": true
+    },
+    {
+        "level": 3,
+        "typeName": "磁力积木",
+        "parentName": "积木",
+        "isLeaf": true
+    },
+    {
+        "level": 2,
+        "typeName": "遥控玩具",
+        "parentName": "玩具",
+        "isLeaf": true
+    },
+    {
+        "level": 1,
+        "typeName": "图书音像",
+        "parentName": "",
+        "isLeaf": false
+    },
+    {
+        "level": 2,
+        "typeName": "图书",
+        "parentName": "图书音像",
+        "isLeaf": false
+    },
+    {
+        "level": 3,
+        "typeName": "专业书籍",
+        "parentName": "图书",
+        "isLeaf": true
+    },
+    {
+        "level": 3,
+        "typeName": "儿童读物",
+        "parentName": "图书",
+        "isLeaf": true
+    },
+    {
+        "level": 3,
+        "typeName": "小说",
+        "parentName": "图书",
+        "isLeaf": true
+    },
+    {
+        "level": 1,
+        "typeName": "数码产品",
+        "parentName": "",
+        "isLeaf": false
+    },
+    {
+        "level": 2,
+        "typeName": "音频设备",
+        "parentName": "数码产品",
+        "isLeaf": false
+    },
+    {
+        "level": 3,
+        "typeName": "蓝牙耳机",
+        "parentName": "音频设备",
+        "isLeaf": true
+    },
+    {
+        "level": 2,
+        "typeName": "电脑配件",
+        "parentName": "数码产品",
+        "isLeaf": false
+    },
+    {
+        "level": 3,
+        "typeName": "鼠标",
+        "parentName": "电脑配件",
+        "isLeaf": true
+    }
+]

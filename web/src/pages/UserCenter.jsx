@@ -5,7 +5,8 @@ import {
   FaShoppingCart,
   FaStore,
   FaCommentDots,
-  FaChevronRight
+  FaChevronRight,
+  FaBoxOpen
 } from 'react-icons/fa';
 import AuthService from '../services/auth';
 import OrderService from '../services/order';
@@ -122,6 +123,13 @@ const UserCenter = () => {
               {orderStatus.beEvaluated > 0 && <span className="badge">{orderStatus.beEvaluated}</span>}
             </div>
             <span>待评价</span>
+          </div>
+
+          <div className="order-card" onClick={() => navigate('/my-products')}>
+            <div className="icon-container products">
+              <FaBoxOpen />
+            </div>
+            <span>我的商品</span>
           </div>
         </div>
       </div>

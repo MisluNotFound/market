@@ -1,4 +1,7 @@
 import UserService from './user';
+import { IMService } from './im';
+
+let imServiceInstance = null;
 
 const AuthService = {
   // 登录方法
@@ -7,7 +10,9 @@ const AuthService = {
       const response = await UserService.login({ phone, password });
       localStorage.setItem('accessToken', response.accessToken);
       localStorage.setItem('userId', response.userID);
-      localStorage.setItem('refreshToken', response.refreshToken)
+      localStorage.setItem('refreshToken', response.refreshToken);
+      // 初始化IMService
+      imServiceInstance = new IMService(response.userID);
       return response;
     } catch (error) {
       throw error;
@@ -31,6 +36,10 @@ const AuthService = {
 
     try {
       const user = await UserService.getUserInfo(userId);
+      // 确保IMService已初始化
+      if (!imServiceInstance) {
+        imServiceInstance = new IMService(userId);
+      }
       return user;
     } catch (error) {
       return null;
@@ -41,6 +50,11 @@ const AuthService = {
   logout: () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userId');
+    // 关闭IMService连接
+    if (imServiceInstance) {
+      imServiceInstance.close();
+      imServiceInstance = null;
+    }
   },
 
   // 检查是否已认证
@@ -81,6 +95,11 @@ const AuthService = {
     } catch (error) {
       throw error;
     }
+  },
+
+  // 获取IMService实例
+  getIMService: () => {
+    return imServiceInstance;
   }
 };
 

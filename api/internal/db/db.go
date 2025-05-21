@@ -33,6 +33,10 @@ func Init(zapLogger *zap.Logger) {
 	if err := autoMigrate(); err != nil {
 		panic(err)
 	}
+
+	// if err := dbinitialize.RunInit(db); err != nil {
+	// 	panic(err)
+	// }
 }
 
 func autoMigrate() error {
@@ -40,8 +44,13 @@ func autoMigrate() error {
 		&models.User{},
 		&models.Product{},
 		&models.Category{},
+		&models.ProductCategory{},
 		&models.AttributeTemplate{},
 		&models.Order{},
+		&models.CategoryAttribute{},
+		&models.ProductAttribute{},
+		&models.Message{},
+		&models.Conversation{},
 	)
 
 	return err

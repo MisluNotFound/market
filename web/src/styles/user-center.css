@@ -1,87 +1,38 @@
-/* 用户中心页面样式 */
-.user-center {
-  max-width: 800px;
-  margin: 2rem auto;
-  padding: 1rem;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+.icon-container.products {
+  background-color: #ff9800;
+  color: white;
 }
 
-/* 用户信息头部 */
 .user-header {
   display: flex;
   align-items: center;
-  padding: 1.5rem;
-  background: linear-gradient(135deg, #6e8efb, #a777e3);
-  border-radius: 8px;
-  color: white;
-  margin-bottom: 2rem;
-  cursor: pointer;
-  transition: transform 0.2s;
+  padding: 15px;
+  background-color: #fff;
+  border-radius: 10px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
-.user-header:hover {
-  transform: translateY(-2px);
-}
-
-.avatar-container {
-  width: 80px;
-  height: 80px;
-  margin-right: 1.5rem;
-}
-
-.avatar {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 3px solid rgba(255, 255, 255, 0.3);
-}
-
-.user-info h3 {
-  margin: 0;
-  font-size: 1.5rem;
-}
-
-.user-info p {
-  margin: 0.5rem 0 0;
-  display: flex;
-  align-items: center;
-  font-size: 0.9rem;
-  opacity: 0.9;
-}
-
-/* 订单分类 */
-.section-title {
-  font-size: 1.2rem;
-  color: #333;
-  margin-bottom: 1.5rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid #eee;
+.order-sections {
+  background-color: #fff;
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
 .order-cards {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+  margin-top: 15px;
 }
 
 .order-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 1.5rem 1rem;
-  background: #f9f9f9;
-  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s;
-}
-
-.order-card:hover {
-  background: #f0f0f0;
-  transform: translateY(-3px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .icon-container {
@@ -91,45 +42,42 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 1rem;
-  font-size: 1.5rem;
-  color: white;
+  margin-bottom: 8px;
 }
 
 .icon-container.sold {
-  background: #ff6b6b;
+  background-color: #4caf50;
+  color: white;
 }
 
 .icon-container.bought {
-  background: #4ecdc4;
+  background-color: #2196f3;
+  color: white;
 }
 
 .icon-container.review {
-  background: #ffd166;
+  background-color: #ffeb3b;
+  color: #333;
 }
 
-.order-card span {
-  font-size: 0.95rem;
-  color: #555;
+.badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background-color: #f44336;
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
 }
 
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .user-center {
-    margin: 1rem;
-    padding: 0.5rem;
-  }
-
-  .order-cards {
-    grid-template-columns: 1fr;
-  }
-
-  .user-header {
-    padding: 1rem;
-  }
-
-  .avatar-container {
-    width: 60px;
-    height: 60px;
-  }
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
 }

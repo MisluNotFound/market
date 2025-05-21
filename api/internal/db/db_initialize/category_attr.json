@@ -1,0 +1,261 @@
+[
+    {
+        "categoryName": "T恤",
+        "attributes": [
+            "尺寸",
+            "颜色",
+            "面料",
+            "袖长"
+        ]
+    },
+    {
+        "categoryName": "衬衫",
+        "attributes": [
+            "尺寸",
+            "颜色",
+            "领型",
+            "面料成分"
+        ]
+    },
+    {
+        "categoryName": "连衣裙",
+        "attributes": [
+            "尺码",
+            "颜色",
+            "裙长",
+            "面料"
+        ]
+    },
+    {
+        "categoryName": "半身裙",
+        "attributes": [
+            "尺码",
+            "颜色",
+            "裙长",
+            "面料"
+        ]
+    },
+    {
+        "categoryName": "智能手机",
+        "attributes": [
+            "品牌",
+            "型号",
+            "屏幕尺寸",
+            "存储容量",
+            "运行内存",
+            "电池容量"
+        ]
+    },
+    {
+        "categoryName": "功能手机",
+        "attributes": [
+            "品牌",
+            "电池容量",
+            "是否带摄像头"
+        ]
+    },
+    {
+        "categoryName": "笔记本电脑",
+        "attributes": [
+            "品牌",
+            "型号",
+            "CPU",
+            "内存",
+            "存储",
+            "屏幕尺寸"
+        ]
+    },
+    {
+        "categoryName": "微波炉",
+        "attributes": [
+            "容量",
+            "功率",
+            "是否烧烤"
+        ]
+    },
+    {
+        "categoryName": "电饭煲",
+        "attributes": [
+            "容量",
+            "功率",
+            "功能模式"
+        ]
+    },
+    {
+        "categoryName": "吸尘器",
+        "attributes": [
+            "功率",
+            "集尘容量",
+            "是否无线"
+        ]
+    },
+    {
+        "categoryName": "空气净化器",
+        "attributes": [
+            "适用面积",
+            "滤网类型",
+            "噪音水平"
+        ]
+    },
+    {
+        "categoryName": "面霜",
+        "attributes": [
+            "容量",
+            "肤质",
+            "SPF"
+        ]
+    },
+    {
+        "categoryName": "洁面",
+        "attributes": [
+            "容量",
+            "肤质"
+        ]
+    },
+    {
+        "categoryName": "口红",
+        "attributes": [
+            "色号",
+            "质地",
+            "净含量"
+        ]
+    },
+    {
+        "categoryName": "睫毛膏",
+        "attributes": [
+            "类型",
+            "净含量"
+        ]
+    },
+    {
+        "categoryName": "奶瓶",
+        "attributes": [
+            "容量",
+            "材质",
+            "奶嘴尺寸"
+        ]
+    },
+    {
+        "categoryName": "尿布",
+        "attributes": [
+            "适用体重",
+            "片数",
+            "材质"
+        ]
+    },
+    {
+        "categoryName": "孕妇装",
+        "attributes": [
+            "尺码",
+            "材质",
+            "季节"
+        ]
+    },
+    {
+        "categoryName": "孕妇枕",
+        "attributes": [
+            "材质",
+            "长度",
+            "形状"
+        ]
+    },
+    {
+        "categoryName": "跑步机",
+        "attributes": [
+            "最高速度",
+            "马达功率",
+            "最大倾斜度"
+        ]
+    },
+    {
+        "categoryName": "哑铃",
+        "attributes": [
+            "重量",
+            "材质"
+        ]
+    },
+    {
+        "categoryName": "帐篷",
+        "attributes": [
+            "容纳人数",
+            "材质",
+            "重量"
+        ]
+    },
+    {
+        "categoryName": "睡袋",
+        "attributes": [
+            "适用温度",
+            "材质",
+            "重量"
+        ]
+    },
+    {
+        "categoryName": "塑料积木",
+        "attributes": [
+            "块数",
+            "颜色数",
+            "材质"
+        ]
+    },
+    {
+        "categoryName": "木质积木",
+        "attributes": [
+            "块数",
+            "木材类型"
+        ]
+    },
+    {
+        "categoryName": "磁力积木",
+        "attributes": [
+            "块数",
+            "吸力等级"
+        ]
+    },
+    {
+        "categoryName": "遥控玩具",
+        "attributes": [
+            "电池类型",
+            "控制距离"
+        ]
+    },
+    {
+        "categoryName": "专业书籍",
+        "attributes": [
+            "作者",
+            "出版社",
+            "出版日期"
+        ]
+    },
+    {
+        "categoryName": "儿童读物",
+        "attributes": [
+            "作者",
+            "页数"
+        ]
+    },
+    {
+        "categoryName": "小说",
+        "attributes": [
+            "作者",
+            "页数",
+            "类型"
+        ]
+    },
+    {
+        "categoryName": "蓝牙耳机",
+        "attributes": [
+            "续航时长",
+            "连接距离",
+            "降噪功能"
+        ]
+    },
+    {
+        "categoryName": "鼠标",
+        "attributes": [
+            "连接方式",
+            "DPI",
+            "按键数量"
+        ]
+    }
+]

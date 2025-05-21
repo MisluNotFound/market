@@ -20,6 +20,8 @@ func (s *Server) serve() {
 	productRouter := s.engine.Group("/api/product")
 	assertRouter := s.engine.Group("/api/assert")
 	orderRouter := s.engine.Group("/api/order")
+	searchRouter := s.engine.Group("/api/search")
+	conversationRouter := s.engine.Group("/api/conversation")
 
 	// setup routers
 	s.registerUserGroup(userRouter)
@@ -27,6 +29,8 @@ func (s *Server) serve() {
 	s.registerProductGroup(productRouter)
 	s.registerAssertGroup(assertRouter)
 	s.registerOrderGroup(orderRouter)
+	s.registerSearchGroup(searchRouter)
+	s.registerConversationGroup(conversationRouter)
 
 	// run
 	srv := &http.Server{
@@ -81,7 +85,8 @@ func (s *Server) registerProductGroup(group *gin.RouterGroup) {
 	group.PUT("/:userID/:productID/selling", controllers.NotSold())
 	group.GET("/:userID", controllers.GetUserProducts())
 	group.GET("/products", controllers.GetProductList())
-	group.GET("/search", controllers.SearchProduct())
+	group.GET("/category", controllers.GetAllCategory())
+	group.PUT("/:userID/:productID/price", controllers.UpdateProductPrice())
 }
 
 func (s *Server) registerAssertGroup(group *gin.RouterGroup) {
@@ -99,4 +104,15 @@ func (s *Server) registerOrderGroup(group *gin.RouterGroup) {
 	group.GET("/:userID/status", controllers.GetAllOrderStatus())
 	group.POST("/refund/:userID/:orderID", controllers.RefoundOrder())
 	group.PUT("/cancel/:userID/:orderID", controllers.CancelOrder())
+}
+
+func (s *Server) registerSearchGroup(group *gin.RouterGroup) {
+	group.POST("/products", controllers.SearchProduct())
+}
+
+func (s *Server) registerConversationGroup(group *gin.RouterGroup) {
+	group.POST("/create", controllers.CreateConversation())
+	group.GET("/:userID", controllers.GetConversationList())
+	group.GET("/messages", controllers.GetMessages())
+	group.GET("/:userID/list", controllers.GetConversationList())
 }

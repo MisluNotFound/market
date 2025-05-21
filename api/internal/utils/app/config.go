@@ -1,6 +1,8 @@
 package app
 
 import (
+	"os"
+
 	"github.com/spf13/viper"
 )
 
@@ -26,6 +28,14 @@ type Config struct {
 		MaxSize int    `mapstructure:"max_size"`
 		Root    string `mapstructure:"root"`
 	} `mapstructure:"oss"`
+
+	ES struct {
+		Addresses []string `mapstructure:"addresses"`
+	} `mapstructure:"es"`
+
+	Alipay struct {
+		APPID string `mapstructure:"app_id"`
+	} `mapstructure:"alipay"`
 }
 
 var config *Config
@@ -40,7 +50,11 @@ func GetConfig() Config {
 
 func Init() {
 	config = &Config{}
-	viper.SetConfigFile("./config.yaml")
+	configPath := os.Getenv("m_market_config")
+	if len(configPath) == 0 {
+		configPath = "./config.yaml"
+	}
+	viper.SetConfigFile(configPath)
 	if err := viper.ReadInConfig(); err != nil {
 		panic(err)
 	}

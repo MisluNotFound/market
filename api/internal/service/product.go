@@ -1,6 +1,7 @@
 package service
 
 import (
+	"encoding/json"
 	"errors"
 	"mime/multipart"
 	"slices"
@@ -9,11 +10,13 @@ import (
 
 	resourcemanager "github.com/mislu/market-api/internal/core/resource_manager"
 	"github.com/mislu/market-api/internal/db"
+	"github.com/mislu/market-api/internal/es"
 	"github.com/mislu/market-api/internal/types/exceptions"
 	"github.com/mislu/market-api/internal/types/models"
 	"github.com/mislu/market-api/internal/types/request"
 	"github.com/mislu/market-api/internal/types/response"
 	"github.com/mislu/market-api/internal/utils/lib"
+	"gorm.io/gorm"
 )
 
 var (
@@ -41,6 +44,12 @@ func CreateProduct(req *request.CreateProductReq) (response.CreateProductResp, e
 		req.ShipPrice = 0
 	}
 
+	attributes := make(map[uint]string)
+	err = json.Unmarshal([]byte(req.AttributesJson), &attributes)
+	if err != nil {
+		return resp, exceptions.InternalServerError(err)
+	}
+
 	product := &models.Product{
 		UserID:         req.UserID,
 		Price:          req.Price,
@@ -57,21 +66,113 @@ func CreateProduct(req *request.CreateProductReq) (response.CreateProductResp, e
 		PublishAt:   time.Now(),
 	}
 
+	switch req.Condition {
+	case "new":
+		product.Condition = "全新"
+	case "good":
+		product.Condition = "八成新"
+	case "excellent":
+		product.Condition = "九成新"
+	default:
+		product.Condition = "使用过"
+		product.UsedTime = req.UsedTime
+	}
+
 	pics, resp, err := uploadProductPics(req.Pics, user.ID)
 	if err != nil {
 		return resp, exceptions.InternalServerError(err)
 	}
 
-	product.Pics = strings.Join(pics, ",")
-
-	err = db.Create(product)
-	if err != nil {
+	deletePics := func(pics []string) {
 		for _, pic := range pics {
 			key := lib.SplitResourceURL(pic)
 
 			// 忽略删除错误，由定时清理任务清除多余的文件
 			resourcemanager.DeleteFile(resourcemanager.ProductBucket, resourcemanager.GetObjectPath(resourcemanager.ProductBucket, user.ID, key))
 		}
+	}
+
+	product.Pics = strings.Join(pics, ",")
+
+	// 数据库创建商品，分类
+	err = db.WithTransaction(func(tx *gorm.DB) error {
+		if err := db.Create(product, tx); err != nil {
+			return err
+		}
+
+		productAttributes := make([]models.ProductAttribute, 0, len(attributes))
+		for id, value := range attributes {
+			productAttributes = append(productAttributes, models.ProductAttribute{
+				ProductID:   product.ID,
+				AttributeID: id,
+				Value:       value,
+			})
+		}
+
+		productCategories := make([]models.ProductCategory, 0, len(req.Categories))
+		for _, categoryID := range req.Categories {
+			productCategories = append(productCategories, models.ProductCategory{
+				ProductID:  product.ID,
+				CategoryID: categoryID,
+			})
+		}
+
+		if err := db.Create(productCategories, tx); err != nil {
+			return err
+		}
+
+		return db.Create(productAttributes, tx)
+	})
+
+	if err != nil {
+		deletePics(pics)
+
+		return resp, exceptions.InternalServerError(err)
+	}
+
+	productDocument := &request.ProductDocument{
+		ID:        product.ID,
+		Describe:  product.Describe,
+		CreatedAt: product.CreatedAt,
+	}
+
+	productCategories, err := db.GetAll[models.Category](
+		db.InArray("id", req.Categories),
+	)
+
+	categoriesString := make([]string, 0, len(productCategories))
+	for _, category := range productCategories {
+		categoriesString = append(categoriesString, category.TypeName)
+	}
+
+	if err != nil {
+		deletePics(pics)
+
+		return resp, exceptions.InternalServerError(err)
+	}
+
+	productDocument.Category = categoriesString
+
+	for id, value := range attributes {
+		attribute, err := db.GetOne[models.AttributeTemplate](
+			db.Equal("id", id),
+		)
+
+		if err != nil {
+			deletePics(pics)
+
+			return resp, exceptions.InternalServerError(err)
+		}
+
+		productDocument.Attributes = append(productDocument.Attributes, request.AttributeES{
+			Key:   attribute.Name,
+			Value: value,
+		})
+	}
+	// 写入es
+	err = es.IndexDocument("m-market", productDocument.ID, productDocument)
+	if err != nil {
+		deletePics(pics)
 
 		return resp, exceptions.InternalServerError(err)
 	}
@@ -82,21 +183,8 @@ func CreateProduct(req *request.CreateProductReq) (response.CreateProductResp, e
 func GetProduct(req *request.GetProductReq) (response.GetProductResp, exceptions.APIError) {
 	var resp response.GetProductResp
 
-	user, err := db.GetOne[*models.User](
-		db.Equal("id", req.UserID),
-	)
-
-	if err != nil {
-		return resp, exceptions.InternalServerError(err)
-	}
-
-	if !user.Exists() {
-		return resp, exceptions.BadRequestError(errUserNotFound, exceptions.UserNotExistsError)
-	}
-
 	product, err := db.GetOne[*models.Product](
 		db.Equal("id", req.ProductID),
-		db.Equal("user_id", req.UserID),
 		db.Equal("is_published", true),
 	)
 
@@ -108,12 +196,46 @@ func GetProduct(req *request.GetProductReq) (response.GetProductResp, exceptions
 		return resp, exceptions.BadRequestError(errProductNotFound, exceptions.ProductNotFoundError)
 	}
 
+	user, err := db.GetOne[*models.User](
+		db.Equal("id", product.UserID),
+	)
+
+	if err != nil {
+		return resp, exceptions.InternalServerError(err)
+	}
+
+	if !user.Exists() {
+		return resp, exceptions.BadRequestError(errUserNotFound, exceptions.UserNotExistsError)
+	}
+
 	resp.User = *user
 	resp.Product = *product
 
 	// TODO get comment
 
-	// TODO get types and attributes
+	productCategories, err := db.GetAll[models.ProductCategory](
+		db.Equal("product_id", req.ProductID),
+	)
+	if err != nil {
+		return resp, exceptions.InternalServerError(err)
+	}
+
+	productAttributes, err := db.GetAll[models.ProductAttribute](
+		db.Equal("product_id", req.ProductID),
+	)
+	if err != nil {
+		return resp, exceptions.InternalServerError(err)
+	}
+
+	for _, productCategory := range productCategories {
+		resp.Categories = append(resp.Categories, productCategory.CategoryID)
+	}
+
+	attributes := make(map[uint]string)
+	for _, productAttribute := range productAttributes {
+		attributes[productAttribute.AttributeID] = productAttribute.Value
+	}
+	resp.Attributes = attributes
 
 	return resp, nil
 }
@@ -139,6 +261,10 @@ func UpdateProduct(req *request.UpdateProductReq) (response.CreateProductResp, e
 		db.Equal("is_published", true),
 	)
 
+	if err != nil {
+		return resp, exceptions.InternalServerError(err)
+	}
+
 	if !product.Exists() {
 		return resp, exceptions.BadRequestError(errProductNotFound, exceptions.ProductNotFoundError)
 	}
@@ -149,6 +275,12 @@ func UpdateProduct(req *request.UpdateProductReq) (response.CreateProductResp, e
 
 	if !product.IsOwner(user.ID) {
 		return resp, exceptions.BadRequestError(errNotOwner, exceptions.UserNotProductOwnerError)
+	}
+
+	attributes := make(map[uint]string)
+	err = json.Unmarshal([]byte(req.AttributesJson), &attributes)
+	if err != nil {
+		return resp, exceptions.InternalServerError(err)
 	}
 
 	if req.ShipMethod == "included" {
@@ -181,7 +313,36 @@ func UpdateProduct(req *request.UpdateProductReq) (response.CreateProductResp, e
 	product.CanSelfPickup = req.CanSelfPickup
 	product.OriginalPrice = req.OriginalPrice
 
-	err = db.Update(product)
+	err = db.WithTransaction(func(tx *gorm.DB) error {
+		if err := db.Update(product, tx); err != nil {
+			return err
+		}
+
+		productAttributes := make([]models.ProductAttribute, 0, len(attributes))
+		for id, value := range attributes {
+			productAttributes = append(productAttributes, models.ProductAttribute{
+				ProductID:   product.ID,
+				AttributeID: id,
+				Value:       value,
+			})
+		}
+
+		productCategories := make([]models.ProductCategory, 0, len(req.Categories))
+		for _, categoryID := range req.Categories {
+			productCategories = append(productCategories, models.ProductCategory{
+				ProductID:  product.ID,
+				CategoryID: categoryID,
+			})
+		}
+
+		for _, productCategory := range productCategories {
+			if err := db.FirstOrCreate(&productCategory, tx); err != nil {
+				return err
+			}
+		}
+
+		return db.FirstOrCreate(productAttributes, tx)
+	})
 	if err != nil {
 		return resp, exceptions.InternalServerError(err)
 	}
@@ -296,7 +457,8 @@ func UpdateProductSoldStatus(userID, productID string, status bool) exceptions.A
 func GetUserProducts(req *request.GetUserProductsReq) (response.GetUserProductsResp, exceptions.APIError) {
 	var resp response.GetUserProductsResp
 
-	user, err := db.GetOne[*models.User](
+	user, err := db.GetOne[models.User](
+		db.Fields("id", "username", "avatar"),
 		db.Equal("id", req.UserID),
 	)
 
@@ -309,6 +471,7 @@ func GetUserProducts(req *request.GetUserProductsReq) (response.GetUserProductsR
 	}
 
 	products, err := db.GetAll[models.Product](
+		db.OrderBy("publish_at", true),
 		db.Equal("user_id", req.UserID),
 		db.Equal("is_published", true),
 		db.Page(req.Page, req.Size),
@@ -318,7 +481,15 @@ func GetUserProducts(req *request.GetUserProductsReq) (response.GetUserProductsR
 		return resp, exceptions.InternalServerError(err)
 	}
 
-	resp.Products = products
+	userProducts := make([]response.UserProduct, 0, len(products))
+	for _, product := range products {
+		userProducts = append(userProducts, response.UserProduct{
+			User:    user,
+			Product: product,
+		})
+	}
+
+	resp.Products = userProducts
 	resp.Page = req.Page
 	resp.Size = req.Size
 
@@ -365,43 +536,125 @@ func GetProductList(req *request.GetProductListReq) (response.GetProductListResp
 	return resp, nil
 }
 
-func SearchProduct(req *request.SearchProductReq) (response.GetProductListResp, exceptions.APIError) {
-	var resp response.GetProductListResp
+// func SearchProduct(req *request.SearchProductReq) (response.GetProductListResp, exceptions.APIError) {
+// 	var resp response.GetProductListResp
 
-	products, err := db.GetAll[models.Product](
-		db.Equal("is_published", true),
-		db.Page(req.Page, req.Size),
-		db.OrderBy("created_at", true),
-		db.Equal("is_selling", true),
-		db.Equal("is_sold", false),
-		db.Like("`describe`", req.Keyword),
+// 	products, err := db.GetAll[models.Product](
+// 		db.Equal("is_published", true),
+// 		db.Page(req.Page, req.Size),
+// 		db.OrderBy("created_at", true),
+// 		db.Equal("is_selling", true),
+// 		db.Equal("is_sold", false),
+// 		db.Like("`describe`", req.Keyword),
+// 	)
+
+// 	if err != nil {
+// 		return resp, exceptions.InternalServerError(err)
+// 	}
+
+// 	for _, product := range products {
+// 		user, err := db.GetOne[*models.User](
+// 			db.Equal("id", product.UserID),
+// 		)
+
+// 		if err != nil {
+// 			return resp, exceptions.InternalServerError(err)
+// 		}
+
+// 		if !user.Exists() {
+// 			continue
+// 		}
+
+// 		resp.Products = append(resp.Products, response.UserProduct{
+// 			User:    *user,
+// 			Product: product,
+// 		})
+// 	}
+
+// 	resp.Page = req.Page
+// 	resp.Size = req.Size
+
+// 	return resp, nil
+// }
+
+func GetAllCategory() (response.GetAllCategoryResp, exceptions.APIError) {
+	flatCategories, err := db.GetAll[models.Category](
+		db.OrderBy("level", false),
 	)
 
 	if err != nil {
-		return resp, exceptions.InternalServerError(err)
+		return nil, exceptions.InternalServerError(err)
 	}
 
-	for _, product := range products {
-		user, err := db.GetOne[*models.User](
-			db.Equal("id", product.UserID),
-		)
+	categoryMap := make(map[uint]*response.WrappedCategory)
+	var rootNodes []*response.WrappedCategory
 
-		if err != nil {
-			return resp, exceptions.InternalServerError(err)
+	for _, cat := range flatCategories {
+		node := &response.WrappedCategory{
+			Category: cat,
+			Children: []*response.WrappedCategory{},
 		}
-
-		if !user.Exists() {
-			continue
+		categoryMap[cat.ID] = node
+		if cat.ParentID == 0 {
+			rootNodes = append(rootNodes, node)
 		}
-
-		resp.Products = append(resp.Products, response.UserProduct{
-			User:    *user,
-			Product: product,
-		})
 	}
 
-	resp.Page = req.Page
-	resp.Size = req.Size
+	for _, cat := range flatCategories {
+		if cat.ParentID != 0 {
+			if parent, ok := categoryMap[cat.ParentID]; ok {
+				parent.Children = append(parent.Children, categoryMap[cat.ID])
+			}
+		}
+	}
 
-	return resp, nil
+	for _, cat := range flatCategories {
+		if cat.IsLeaf {
+			categoryAttributes, err := db.GetAll[models.CategoryAttribute](
+				db.Equal("category_id", cat.ID),
+			)
+			if err != nil {
+				return nil, exceptions.InternalServerError(err)
+			}
+
+			attributeIDs := make([]uint, 0, len(categoryAttributes))
+			for _, ca := range categoryAttributes {
+				attributeIDs = append(attributeIDs, ca.AttributeID)
+			}
+
+			attributes, err := db.GetAll[models.AttributeTemplate](
+				db.InArray("id", attributeIDs),
+			)
+
+			if err != nil {
+				return nil, exceptions.InternalServerError(err)
+			}
+
+			categoryMap[cat.ID].Attributes = attributes
+		}
+	}
+
+	return response.GetAllCategoryResp(rootNodes), nil
+}
+
+func UpdateProductPrice(req *request.UpdateProductPriceReq) exceptions.APIError {
+	product, err := db.GetOne[models.Product](
+		db.Equal("id", req.ProductID),
+	)
+
+	if err != nil {
+		return exceptions.InternalServerError(err)
+	}
+
+	if !product.Exists() {
+		return exceptions.BadRequestError(errProductNotFound, exceptions.ProductNotFoundError)
+	}
+
+	product.Price = req.Price
+	err = db.Update(&product)
+	if err != nil {
+		return exceptions.InternalServerError(err)
+	}
+
+	return nil
 }

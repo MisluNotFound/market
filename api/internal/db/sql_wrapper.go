@@ -19,6 +19,13 @@ func Create(data any, ctx ...*gorm.DB) error {
 	return DB.Create(data).Error
 }
 
+func FirstOrCreate(data any, ctx ...*gorm.DB) error {
+	if len(ctx) > 0 {
+		return ctx[0].FirstOrCreate(data).Error
+	}
+	return DB.FirstOrCreate(data).Error
+}
+
 func Update(data any, ctx ...*gorm.DB) error {
 	if len(ctx) > 0 {
 		return ctx[0].Save(data).Error
@@ -59,7 +66,7 @@ type genericComparableConstraint interface {
 	int | int8 | int16 | int32 | int64 |
 		uint | uint8 | uint16 | uint32 | uint64 |
 		float32 | float64 |
-		bool
+		bool | string
 }
 
 type genericEqualConstraint interface {
@@ -222,7 +229,7 @@ func WithTransactionContext(tx *gorm.DB) GenericQuery {
 	}
 }
 
-func InArray(field string, value []interface{}) GenericQuery {
+func InArray(field string, value interface{}) GenericQuery {
 	return func(tx *gorm.DB) *gorm.DB {
 		return tx.Where(fmt.Sprintf("%s IN ?", field), value)
 	}
@@ -255,7 +262,6 @@ func GetOne[T any](query ...GenericQuery) (T /* data */, error) {
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return data, nil
 	}
-	
 	return data, err
 }
 
