@@ -22,3 +22,15 @@ type UserOrder struct {
 type GetOrderResp struct {
 	UserOrder
 }
+
+type PayOrderResp struct {
+	PayURL string `json:"payURL"`
+}
+
+type GetUnCommentOrderResp struct {
+	Orders []UserOrder `json:"orders"`
+}
+
+type PurchaseProductResp struct {
+	OrderID string `json:"orderID"`
+}

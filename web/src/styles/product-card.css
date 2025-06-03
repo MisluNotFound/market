@@ -5,6 +5,8 @@
   overflow: hidden;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   margin-bottom: 20px;
+  position: relative;
+  width: 100%;
 }
 
 .product-card:hover {
@@ -14,19 +16,55 @@
 
 .product-image-container {
   width: 100%;
-  height: 200px;
+  height: 320px;
   overflow: hidden;
+  position: relative;
 }
 
 .product-image {
-  width: 100%;
-  height: 100%;
+  width: 160px;
+  height: 160px;
+  min-width: 160px;
+  min-height: 160px;
   object-fit: cover;
   transition: transform 0.5s ease;
 }
 
 .product-card:hover .product-image {
   transform: scale(1.05);
+}
+
+/* 商品状态遮罩 */
+.product-status-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.status-text {
+  font-size: 24px;
+  font-weight: bold;
+  padding: 10px 20px;
+  border: 2px solid;
+  border-radius: 4px;
+  transform: rotate(-15deg);
+}
+
+.status-text.sold {
+  color: #ff4d4f;
+  border-color: #ff4d4f;
+}
+
+.status-text.off-shelf {
+  color: #666;
+  border-color: #666;
 }
 
 .product-info {
@@ -53,16 +91,21 @@
 }
 
 .product-price {
+  text-align: center;
+  margin: 12px 0;
+}
+
+.product-price .current-price {
   font-size: 20px;
   color: #ff4d4f;
-  margin: 8px 0;
+  font-weight: bold;
 }
 
 .original-price {
   font-size: 12px;
   color: #999;
   text-decoration: line-through;
-  margin-bottom: 8px;
+  margin-left: 8px;
 }
 
 .product-desc {
@@ -78,8 +121,10 @@
 
 .product-meta {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .location {
@@ -93,4 +138,42 @@
   background: #f6ffed;
   padding: 2px 6px;
   border-radius: 4px;
+}
+
+.product-condition {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background-color: #f5f5f5;
+  color: #666;
+}
+
+.product-condition.used {
+  background-color: #fff7e6;
+  color: #d46b08;
+}
+
+.product-condition.new {
+  background-color: #f6ffed;
+  color: #52c41a;
+}
+
+.favorite-icon {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  color: #ccc;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  z-index: 1;
+  margin-top: 5px;
+}
+
+.favorite-icon:hover {
+  color: #ff4d4f;
+}
+
+.favorite-icon.liked {
+  color: #ff4d4f;
 }

@@ -26,6 +26,14 @@ export default function Chat({ userId }) {
     return sorted;
   }, []);
 
+  const parseProductMessage = (content) => {
+    const parts = content.split(',');
+    const description = parts[0].replace('describe ', '');
+    const avatar = parts[1].replace('avatar ', '');
+    const price = parts[2].replace('price ', '');
+    return { description, avatar, price };
+  };
+
   useEffect(() => {
     if (!imService.current) {
       console.error('IMService not initialized');
@@ -93,14 +101,27 @@ export default function Chat({ userId }) {
       setConversationMessages(prev => {
         const newMap = new Map(prev);
         const currentMessages = newMap.get(conversationId) || [];
-        const newMessage = {
-          id: message.id || message.tempID || Date.now().toString(),
-          from: message.from_user_id || message.from,
-          content: message.content,
-          time: message.timestamp || new Date().toISOString()
-        };
-        console.log('格式化后的消息:', newMessage);
+        let newMessage;
 
+        if (message.media_type === 'link') {
+          const productInfo = parseProductMessage(message.content);
+          newMessage = {
+            id: message.id || message.tempID || Date.now().toString(),
+            from: message.from_user_id || message.from,
+            content: productInfo,
+            media_type: 'link',
+            time: message.timestamp || new Date().toISOString()
+          };
+        } else {
+          newMessage = {
+            id: message.id || message.tempID || Date.now().toString(),
+            from: message.from_user_id || message.from,
+            content: message.content,
+            time: message.timestamp || new Date().toISOString()
+          };
+        }
+
+        console.log('格式化后的消息:', newMessage);
         const updatedMessages = sortMessages([...currentMessages, newMessage]);
         newMap.set(conversationId, updatedMessages);
         console.log('更新后的消息列表:', updatedMessages);
@@ -174,12 +195,16 @@ export default function Chat({ userId }) {
         conversation.fromUserID,  // fromUserID应该是对方用户
         conversation.toUserID
       );
+
+      console.log('获取消息响应:', msgResponse.data.Messages);
+      // TODO 修改字段为小驼峰
       const sortedMessages = sortMessages(
         (msgResponse?.data?.Messages || []).map(msg => ({
           id: msg.id,
           from: msg.from_user_id,
           content: msg.content,
-          time: msg.timestamp
+          time: msg.timestamp,
+          mediaType: msg.media_type
         }))
       );
       setConversationMessages(prev => {
@@ -214,8 +239,8 @@ export default function Chat({ userId }) {
                 {new Date(conversation.lastMessageTime).toLocaleString()}
               </div>
             </div>
-            {conversation.unread > 0 && (
-              <div className="unread-badge">{conversation.unread}</div>
+            {conversation.unreadCount > 0 && (
+              <div className="unread-badge">{conversation.unreadCount}</div>
             )}
           </div>
         ))}
@@ -224,22 +249,6 @@ export default function Chat({ userId }) {
       <div className="chat-area">
         {activeConversation ? (
           <>
-            {currentProduct && (
-              <div className="chat-product-info">
-                <img
-                  src={currentProduct.avatar.split(',')[0].trim()}
-                  alt="商品图片"
-                  className="product-image"
-                />
-                <div className="product-details">
-                  <div className="product-name">{currentProduct.title}</div>
-                  <div className="product-info-line">
-                    <span className="product-price">¥{currentProduct.price}</span>
-                    <span className="product-description">{currentProduct.describe}</span>
-                  </div>
-                </div>
-              </div>
-            )}
             <div className="chat-header">
               <div className="chat-user">
                 <img
@@ -249,15 +258,35 @@ export default function Chat({ userId }) {
                 />
                 <div className="chat-title">{activeConversation.name}</div>
               </div>
-              {currentProduct && (
-                <div className="chat-product-brief">
-                  正在交易: {currentProduct.title}
-                </div>
-              )}
             </div>
             <div className="chat-messages">
               {messages.map((msg, index) => (
-                <div key={index} className={`message-container ${msg.from === userId ? 'sent' : 'received'}`}>
+                <div
+                  key={index}
+                  className={`message-container ${msg.from === userId ? 'sent' : 'received'}`}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    const menu = document.getElementById(`message-menu-${index}`);
+                    if (menu) {
+                      menu.style.display = 'block';
+                      menu.style.left = `${e.clientX}px`;
+                      menu.style.top = `${e.clientY}px`;
+                    }
+                  }}
+                  onMouseEnter={() => {
+                    const recall = document.getElementById(`recall-${index}`);
+                    if (recall) recall.style.display = 'block';
+                  }}
+                  onMouseLeave={() => {
+                    const recall = document.getElementById(`recall-${index}`);
+                    if (recall) recall.style.display = 'none';
+                  }}
+                >
+                  {msg.from === userId && (
+                    <div id={`recall-${index}`} className="recall-btn" style={{ display: 'none' }}>
+                      撤回
+                    </div>
+                  )}
                   {msg.from !== userId && (
                     <div
                       className="message-avatar"
@@ -265,22 +294,44 @@ export default function Chat({ userId }) {
                     />
                   )}
                   <div className={`message ${msg.from === userId ? 'sent' : 'received'}`}>
-                    <div className="message-content">{msg.content}</div>
+                    {msg.mediaType === 'link' ? (
+                      <div className="product-message">
+                        <img src="http://127.0.0.1:3200/api/assert/1/7bed6ab8-378f-11f0-939b-0242ac150003/888cb4aa35be5d3c.jpg" alt="商品图片" className="product-image" />
+                        <div className="product-info">
+                          <div className="product-description">
+                            {msg.content.length > 20 ? `${msg.content.substring(0, 20)}...` : " Xbox 冰雪白游戏手柄"}
+                          </div>
+                          <div className="product-price">¥299</div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="message-content">{msg.content}</div>
+                    )}
                     <div className="message-time">
                       {new Date(msg.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </div>
                   </div>
+                  <div id={`message-menu-${index}`} className="message-menu" style={{ display: 'none' }}>
+                    <div className="menu-item">撤回消息</div>
+                  </div>
                 </div>
               ))}
             </div>
+
             <div className="chat-input">
-              <textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="输入消息..."
-                onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-              />
-              <button onClick={handleSend}>发送</button>
+              <div className="chat-actions">
+                <button className="chat-action-btn">发送商品</button>
+                <button className="chat-action-btn">发送订单</button>
+              </div>
+              <div className="input-container">
+                <textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="输入消息..."
+                  onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
+                />
+                <button className="send-btn" onClick={handleSend}>发送</button>
+              </div>
             </div>
           </>
         ) : (

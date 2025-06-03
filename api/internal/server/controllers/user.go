@@ -122,3 +122,21 @@ func RefreshAccessToken() func(c *gin.Context) {
 
 	}
 }
+
+func SelectInterestTags() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		req := &request.SelectInterestTagsReq{}
+		if err := BindRequest(c, req); err != nil {
+			AbortWithError(c, err)
+			return
+		}
+
+		err := service.SelectInterestTags(req)
+		if err != nil {
+			AbortWithError(c, err)
+			return
+		}
+
+		Success(c, ResponseTypeJSON, "ok")
+	}
+}

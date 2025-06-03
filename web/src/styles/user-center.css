@@ -10,7 +10,7 @@
   background-color: #fff;
   border-radius: 10px;
   margin-bottom: 15px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .order-sections {
@@ -18,12 +18,12 @@
   border-radius: 10px;
   padding: 15px;
   margin-bottom: 15px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .order-cards {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 15px;
   margin-top: 15px;
 }
@@ -80,4 +80,14 @@
   justify-content: center;
   align-items: center;
   height: 100vh;
+}
+
+.icon-container.favorites {
+  background-color: rgb(206, 116, 37);
+  color: white;
+}
+
+.icon-container.address {
+  background-color: rgb(28, 20, 13);
+  color: white;
 }

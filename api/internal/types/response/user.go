@@ -14,5 +14,6 @@ type LoginResp struct {
 
 type GetUserInfoResp struct {
 	models.User
+	models.Credit
 	// TODO 添加商品信息
 }

@@ -15,13 +15,13 @@ func PurchaseProduct() func(c *gin.Context) {
 			return
 		}
 
-		err := service.PurchaseProduct(req)
+		resp, err := service.PurchaseProduct(req)
 		if err != nil {
 			AbortWithError(c, err)
 			return
 		}
 
-		Success(c, ResponseTypeJSON, "ok")
+		Success(c, ResponseTypeJSON, resp)
 	}
 }
 
@@ -112,13 +112,15 @@ func PayOrder() func(c *gin.Context) {
 			return
 		}
 
-		err := service.PayOrder(req)
+		// TODO implement wechat pay
+		req.Method = "alipay"
+		resp, err := service.PayOrder(req)
 		if err != nil {
 			AbortWithError(c, err)
 			return
 		}
 
-		Success(c, ResponseTypeJSON, "ok")
+		Success(c, ResponseTypeJSON, resp)
 	}
 }
 
@@ -176,5 +178,111 @@ func CancelOrder() func(c *gin.Context) {
 		}
 
 		Success(c, ResponseTypeJSON, "ok")
+	}
+}
+
+// POST /api/order/comment/orderID
+func CreateOrderComment() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		req := &request.CreateOrderCommentReq{}
+		if err := BindRequest(c, req); err != nil {
+			AbortWithError(c, err)
+			return
+		}
+
+		userID, _ := GetContextUserID(c)
+		err := service.CreateOrderComment(req, userID)
+		if err != nil {
+			AbortWithError(c, err)
+			return
+		}
+
+		Success(c, ResponseTypeJSON, "ok")
+	}
+}
+
+// POST /api/order/comment/orderID/reply
+func ReplyOrderComment() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		req := &request.ReplyOrderCommentReq{}
+		if err := BindRequest(c, req); err != nil {
+			AbortWithError(c, err)
+			return
+		}
+
+		userID, _ := GetContextUserID(c)
+		err := service.ReplyOrderComment(req, userID)
+		if err != nil {
+			AbortWithError(c, err)
+			return
+		}
+
+		Success(c, ResponseTypeJSON, "ok")
+	}
+}
+
+// GET /api/order/comment/orderID
+func GetOrderComments() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		req := &request.GetOrderCommentsReq{}
+		if err := BindRequest(c, req); err != nil {
+			AbortWithError(c, err)
+			return
+		}
+
+		resp, err := service.GetOrderComments(req)
+		if err != nil {
+			AbortWithError(c, err)
+			return
+		}
+
+		Success(c, ResponseTypeJSON, resp)
+	}
+}
+
+// GET /api/order/comment/seller/sellerID
+func GetSellerComments() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		req := &request.GetSellerCommentsReq{}
+		if err := BindRequest(c, req); err != nil {
+			AbortWithError(c, err)
+			return
+		}
+
+		resp, err := service.GetSellerComments(req)
+		if err != nil {
+			AbortWithError(c, err)
+			return
+		}
+
+		Success(c, ResponseTypeJSON, resp)
+	}
+}
+
+// POST /api/order/alipay/notify
+func AliPayNotify() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		values := c.Request.PostForm
+
+		service.AlipayNotify(values)
+		c.Writer.Write([]byte("success"))
+	}
+}
+
+func GetUnCommentOrder() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		req := &request.GetUncommentOrder{}
+		if err := BindRequest(c, req); err != nil {
+			AbortWithError(c, err)
+			return
+		}
+
+		resp, err := service.GetUnCommentOrder(req)
+		if err != nil {
+			AbortWithError(c, err)
+			return
+		}
+
+		Success(c, ResponseTypeJSON, resp)
 	}
 }

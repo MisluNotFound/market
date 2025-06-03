@@ -1,0 +1,15 @@
+[database]
+data_store = "mysql://root:mislu_market@tcp(mysql:3306)/gorse?parseTime=true"
+cache_store = "redis://redis:6379"
+
+[recommendation]
+item_neighbors = true
+similarity_type = "cosine"
+item_neighbor_size = 50
+recommendation_cache_size = 100
+enable_content_based = true
+positive_feedback = ["like", "purchase"]
+read_feedback = ["view"]
+
+[feedback]
+positive_weight = { purchase = 2, like = 3, view = 1 }

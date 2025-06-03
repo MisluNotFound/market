@@ -36,6 +36,17 @@ type Config struct {
 	Alipay struct {
 		APPID string `mapstructure:"app_id"`
 	} `mapstructure:"alipay"`
+
+	Gorse struct {
+		Endpoint string `mapstructure:"endpoint"`
+		ApiKey   string `mapstructure:"api_key"`
+		MQ       struct {
+			Type   string `mapstructure:"type"`
+			Memory struct {
+				Size int `mapstructure:"size"`
+			} `mapstructure:"memory"`
+		} `mapstructure:"mq"`
+	} `mapstructure:"gorse"`
 }
 
 var config *Config

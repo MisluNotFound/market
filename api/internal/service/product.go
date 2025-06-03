@@ -60,8 +60,6 @@ func CreateProduct(req *request.CreateProductReq) (response.CreateProductResp, e
 		OriginalPrice:  req.OriginalPrice,
 
 		// TODO location
-
-		// TODO 审核
 		IsPublished: true,
 		PublishAt:   time.Now(),
 	}
@@ -134,6 +132,7 @@ func CreateProduct(req *request.CreateProductReq) (response.CreateProductResp, e
 		ID:        product.ID,
 		Describe:  product.Describe,
 		CreatedAt: product.CreatedAt,
+		Price:     product.Price,
 	}
 
 	productCategories, err := db.GetAll[models.Category](
@@ -177,13 +176,14 @@ func CreateProduct(req *request.CreateProductReq) (response.CreateProductResp, e
 		return resp, exceptions.InternalServerError(err)
 	}
 
+	// TODO 写入gorse
 	return resp, nil
 }
 
 func GetProduct(req *request.GetProductReq) (response.GetProductResp, exceptions.APIError) {
 	var resp response.GetProductResp
 
-	product, err := db.GetOne[*models.Product](
+	product, err := db.GetOne[models.Product](
 		db.Equal("id", req.ProductID),
 		db.Equal("is_published", true),
 	)
@@ -196,7 +196,7 @@ func GetProduct(req *request.GetProductReq) (response.GetProductResp, exceptions
 		return resp, exceptions.BadRequestError(errProductNotFound, exceptions.ProductNotFoundError)
 	}
 
-	user, err := db.GetOne[*models.User](
+	user, err := db.GetOne[models.User](
 		db.Equal("id", product.UserID),
 	)
 
@@ -208,8 +208,8 @@ func GetProduct(req *request.GetProductReq) (response.GetProductResp, exceptions
 		return resp, exceptions.BadRequestError(errUserNotFound, exceptions.UserNotExistsError)
 	}
 
-	resp.User = *user
-	resp.Product = *product
+	resp.User = user
+	resp.Product = product
 
 	// TODO get comment
 
@@ -470,6 +470,10 @@ func GetUserProducts(req *request.GetUserProductsReq) (response.GetUserProductsR
 		return resp, exceptions.BadRequestError(errUserNotFound, exceptions.UserNotExistsError)
 	}
 
+	credit, err := db.GetOne[models.Credit](
+		db.Equal("user_id", req.UserID),
+	)
+
 	products, err := db.GetAll[models.Product](
 		db.OrderBy("publish_at", true),
 		db.Equal("user_id", req.UserID),
@@ -486,6 +490,7 @@ func GetUserProducts(req *request.GetUserProductsReq) (response.GetUserProductsR
 		userProducts = append(userProducts, response.UserProduct{
 			User:    user,
 			Product: product,
+			Credit:  credit,
 		})
 	}
 
@@ -512,7 +517,7 @@ func GetProductList(req *request.GetProductListReq) (response.GetProductListResp
 	}
 
 	for _, product := range products {
-		user, err := db.GetOne[*models.User](
+		user, err := db.GetOne[models.User](
 			db.Equal("id", product.UserID),
 		)
 
@@ -524,9 +529,14 @@ func GetProductList(req *request.GetProductListReq) (response.GetProductListResp
 			continue
 		}
 
+		credit, err := db.GetOne[models.Credit](
+			db.Equal("user_id", product.UserID),
+		)
+
 		resp.Products = append(resp.Products, response.UserProduct{
-			User:    *user,
+			User:    user,
 			Product: product,
+			Credit:  credit,
 		})
 	}
 
@@ -535,47 +545,6 @@ func GetProductList(req *request.GetProductListReq) (response.GetProductListResp
 
 	return resp, nil
 }
-
-// func SearchProduct(req *request.SearchProductReq) (response.GetProductListResp, exceptions.APIError) {
-// 	var resp response.GetProductListResp
-
-// 	products, err := db.GetAll[models.Product](
-// 		db.Equal("is_published", true),
-// 		db.Page(req.Page, req.Size),
-// 		db.OrderBy("created_at", true),
-// 		db.Equal("is_selling", true),
-// 		db.Equal("is_sold", false),
-// 		db.Like("`describe`", req.Keyword),
-// 	)
-
-// 	if err != nil {
-// 		return resp, exceptions.InternalServerError(err)
-// 	}
-
-// 	for _, product := range products {
-// 		user, err := db.GetOne[*models.User](
-// 			db.Equal("id", product.UserID),
-// 		)
-
-// 		if err != nil {
-// 			return resp, exceptions.InternalServerError(err)
-// 		}
-
-// 		if !user.Exists() {
-// 			continue
-// 		}
-
-// 		resp.Products = append(resp.Products, response.UserProduct{
-// 			User:    *user,
-// 			Product: product,
-// 		})
-// 	}
-
-// 	resp.Page = req.Page
-// 	resp.Size = req.Size
-
-// 	return resp, nil
-// }
 
 func GetAllCategory() (response.GetAllCategoryResp, exceptions.APIError) {
 	flatCategories, err := db.GetAll[models.Category](
@@ -657,4 +626,128 @@ func UpdateProductPrice(req *request.UpdateProductPriceReq) exceptions.APIError 
 	}
 
 	return nil
+}
+
+func LikeProduct(req *request.LikeProductReq) exceptions.APIError {
+	product, err := db.GetOne[models.Product](
+		db.Equal("id", req.ProductID),
+	)
+
+	if err != nil {
+		return exceptions.InternalServerError(err)
+	}
+
+	if !product.Exists() {
+		return exceptions.BadRequestError(errProductNotFound, exceptions.ProductNotFoundError)
+	}
+
+	user, err := db.GetOne[models.User](
+		db.Equal("id", req.UserID),
+	)
+
+	if err != nil {
+		return exceptions.InternalServerError(err)
+	}
+
+	if !user.Exists() {
+		return exceptions.BadRequestError(errors.New("user does not exist"), exceptions.UserNotExistsError)
+	}
+
+	like := models.Like{
+		UserID:    user.ID,
+		ProductID: product.ID,
+	}
+
+	err = db.Create(&like)
+
+	if err != nil {
+		return exceptions.InternalServerError(err)
+	}
+
+	return nil
+}
+
+func DislikeProduct(req *request.DislikeProductReq) exceptions.APIError {
+	like, err := db.GetOne[models.Like](
+		db.Equal("user_id", req.UserID),
+		db.Equal("product_id", req.ProductID),
+	)
+
+	if err != nil {
+		return exceptions.InternalServerError(err)
+	}
+
+	err = db.Delete(&like)
+
+	if err != nil {
+		return exceptions.InternalServerError(err)
+	}
+
+	return nil
+}
+
+func GetUserLikes(req *request.GetUserLikesReq) (response.GetUserLikesResp, exceptions.APIError) {
+	var resp response.GetUserLikesResp
+
+	user, err := db.GetOne[models.User](
+		db.Equal("id", req.UserID),
+	)
+
+	if err != nil {
+		return resp, exceptions.InternalServerError(err)
+	}
+
+	if !user.Exists() {
+		return resp, exceptions.BadRequestError(errUserNotFound, exceptions.UserNotExistsError)
+	}
+
+	likes, err := db.GetAll[models.Like](
+		db.Equal("user_id", req.UserID),
+		db.Page(req.Page, req.Size),
+	)
+
+	if err != nil {
+		return resp, exceptions.InternalServerError(err)
+	}
+
+	for _, like := range likes {
+		product, err := db.GetOne[models.Product](
+			db.Equal("id", like.ProductID),
+		)
+
+		if err != nil {
+			return resp, exceptions.InternalServerError(err)
+		}
+
+		if !product.Exists() {
+			continue
+		}
+
+		resp.Products = append(resp.Products, response.UserProduct{
+			User:    user,
+			Product: product,
+			IsLiked: true,
+		})
+	}
+
+	resp.Page = req.Page
+	resp.Size = req.Size
+
+	return resp, nil
+}
+
+func GetInterestTags() (response.GetInterestTagsResp, exceptions.APIError) {
+	var resp response.GetInterestTagsResp
+
+	tags, err := db.GetAll[models.InterestTag](
+		db.OrderBy("tag_name", true),
+	)
+
+	if err != nil {
+		return resp, exceptions.InternalServerError(err)
+	}
+
+	resp = tags
+
+	return resp, nil
 }

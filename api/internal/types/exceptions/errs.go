@@ -31,16 +31,18 @@ const (
 
 	// Order related errors
 
-	ProductNotAvailableError = "Product not available."
-	OrderNotFoundError       = "Order not found."
-	UserNotOrderOwnerError   = "User is not the owner of the order."
-	OrderHasNotShipped       = "Product has not been shipped."
-	UserNotOrderSellerError  = "User is not the seller of the order."
-	OrderNotPaidError        = "Order has not been paid."
-	OrderNotToBePaidError    = "Order's status is not to be paid."
-	OrderNotRelatedError     = "You are not related with this order."
-	OrderCanNotCanceled      = "Order can not be canceled."
-
+	ProductNotAvailableError   = "Product not available."
+	OrderNotFoundError         = "Order not found."
+	UserNotOrderOwnerError     = "User is not the owner of the order."
+	OrderHasNotShipped         = "Product has not been shipped."
+	UserNotOrderSellerError    = "User is not the seller of the order."
+	OrderNotPaidError          = "Order has not been paid."
+	OrderNotToBePaidError      = "Order's status is not to be paid."
+	OrderNotRelatedError       = "You are not related with this order."
+	OrderCanNotCanceled        = "Order can not be canceled."
+	OrderAlreadyEvaluatedError = "Order already evaluated."
+	OrderOlderThan30DaysError  = "Order older than 30 days."
+	CommentNotFoundError       = "Comment not found."
 	// conversation related errors
 
 	UnsupportedFileTypeError = "Unsupported file type error"

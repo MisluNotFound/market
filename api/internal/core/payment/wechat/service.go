@@ -16,14 +16,14 @@ type wechatService struct {
 	keyPath  string
 }
 
-func NewWechatService(cfg types.WechatConfig) types.PaymentService {
+func NewWechatService(cfg types.WechatConfig) (*wechatService, error) {
 	return &wechatService{
 		appID:    cfg.AppID,
 		mchID:    cfg.MchID,
 		apiKey:   cfg.ApiKey,
 		certPath: cfg.CertPath,
 		keyPath:  cfg.KeyPath,
-	}
+	}, nil
 }
 
 func (s *wechatService) Pay(ctx context.Context, req types.PaymentRequest) (*types.PaymentResponse, error) {

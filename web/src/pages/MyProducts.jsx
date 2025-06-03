@@ -83,7 +83,7 @@ const MyProducts = () => {
         <div>加载中...</div>
       ) : (
         <>
-          <div className="products-grid">
+          <div className="product-grid">
             {products.length > 0 ? (
               products.map(product => (
                 <ProductCard key={product.id} product={product} />

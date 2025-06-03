@@ -234,3 +234,74 @@ func UpdateProductPrice() func(c *gin.Context) {
 		Success(c, ResponseTypeJSON, "ok")
 	}
 }
+
+// post /api/product/{userID}/{productID}/like
+func LikeProduct() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		req := &request.LikeProductReq{}
+		if err := BindRequest(c, req); err != nil {
+			AbortWithError(c, err)
+			return
+		}
+
+		err := service.LikeProduct(req)
+		if err != nil {
+			AbortWithError(c, err)
+			return
+		}
+
+		Success(c, ResponseTypeJSON, "ok")
+	}
+}
+
+// put /api/product/{userID}/{productID}/dislike
+func DislikeProduct() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		req := &request.DislikeProductReq{}
+		if err := BindRequest(c, req); err != nil {
+			AbortWithError(c, err)
+			return
+		}
+
+		err := service.DislikeProduct(req)
+		if err != nil {
+			AbortWithError(c, err)
+			return
+		}
+
+		Success(c, ResponseTypeJSON, "ok")
+	}
+}
+
+// get /api/product/{userID}/likes
+func GetUserLikes() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		req := &request.GetUserLikesReq{}
+		if err := BindRequest(c, req); err != nil {
+			AbortWithError(c, err)
+			return
+		}
+
+		req.PageReq.Fill()
+
+		resp, err := service.GetUserLikes(req)
+		if err != nil {
+			AbortWithError(c, err)
+			return
+		}
+
+		Success(c, ResponseTypeJSON, resp)
+	}
+}
+
+func GetInterestTags() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		resp, err := service.GetInterestTags()
+		if err != nil {
+			AbortWithError(c, err)
+			return
+		}
+
+		Success(c, ResponseTypeJSON, resp)
+	}
+}

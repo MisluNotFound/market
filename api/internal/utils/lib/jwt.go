@@ -18,11 +18,11 @@ type CustomClaims struct {
 }
 
 func GenerateAccessToken(userID string) (string, error) {
-	return generateToken(userID, time.Duration(app.GetConfig().Server.AccessTokenExpire), true)
+	return generateToken(userID, time.Duration(app.GetConfig().Server.AccessTokenExpire*int(time.Minute)), true)
 }
 
 func GenerateRefreshToken(userID string) (string, error) {
-	return generateToken(userID, time.Duration(app.GetConfig().Server.RefreshTokenExpire), false)
+	return generateToken(userID, time.Duration(app.GetConfig().Server.RefreshTokenExpire*int(time.Minute)), false)
 }
 
 func generateToken(userID string, expire time.Duration, isAccessToken bool) (string, error) {
@@ -32,6 +32,7 @@ func generateToken(userID string, expire time.Duration, isAccessToken bool) (str
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expire)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
+		IsAccessToken: isAccessToken,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -43,7 +44,7 @@ func VerifyToken(tokenString string, isAccessToken bool) (*CustomClaims, error) 
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return secretKey, nil
+		return []byte(secretKey), nil
 	})
 
 	if err != nil {

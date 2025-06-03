@@ -85,6 +85,10 @@ type Category struct {
 	Attributes JSONIntArray `gorm:"type:json;comment:绑定属性ID列表" json:"-"`
 }
 
+func (category Category) Exists() bool {
+	return category.ID > 0
+}
+
 func (Category) TableNmae() string {
 	return "category"
 }
@@ -100,13 +104,16 @@ func (ProductCategory) TableName() string {
 
 // 属性模板表
 type AttributeTemplate struct {
-	ID        uint         `gorm:"primaryKey;comment:属性ID"`
-	Name      string       `gorm:"size:40;not null;index;comment:属性名称"`
-	DataType  DataType     `gorm:"type:varchar(20);check:data_type IN ('STRING','NUMBER','ENUM','BOOLEAN','DATE');comment:数据类型"`
-	Required  bool         `gorm:"default:false;comment:是否必填"`
-	Options   JSONStrArray `gorm:"type:json;comment:枚举选项(仅ENUM类型需要)"`
-	Unit      string       `gorm:"size:10;comment:计量单位(如cm、kg)"`
-	BindRules JSONRuleMap  `gorm:"type:json;comment:绑定规则{includes:[分类ID], excludes:[分类ID]}"`
+	ID       uint         `gorm:"primaryKey;comment:属性ID"`
+	Name     string       `gorm:"size:40;not null;index;comment:属性名称"`
+	DataType DataType     `gorm:"type:varchar(20);check:data_type IN ('STRING','NUMBER','ENUM','BOOLEAN','DATE');comment:数据类型"`
+	Required bool         `gorm:"default:false;comment:是否必填"`
+	Options  JSONStrArray `gorm:"type:json;comment:枚举选项(仅ENUM类型需要)"`
+	Unit     string       `gorm:"size:10;comment:计量单位(如cm、kg)"`
+}
+
+func (a AttributeTemplate) Exists() bool {
+	return a.ID > 0
 }
 
 func (AttributeTemplate) TableName() string {

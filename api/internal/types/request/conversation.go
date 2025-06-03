@@ -24,7 +24,7 @@ type UploadMediaFileReq struct {
 type CreateConversationReq struct {
 	FromUserID string `form:"fromUserID" binding:"required"`
 	ToUserID   string `form:"toUserID" binding:"required"`
-	ProductID  string `form:"productID" binding:"required"`
+	ProductID  string `form:"productID" binding:"required"` // 弃用
 }
 
 type GetConversationListReq struct {

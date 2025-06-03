@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
 import Header from '../components/Header';
 import ProductService from '../services/product';
@@ -9,7 +10,7 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [searchKeyword, setSearchKeyword] = useState('');
+  const navigate = useNavigate();
   const isMounted = useRef(true); // 使用useRef来跟踪组件挂载状态
 
   // 组件卸载时设置isMounted为false
@@ -25,14 +26,8 @@ const Home = () => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        let response;
-        if (searchKeyword) {
-          response = await ProductService.searchProducts(searchKeyword, page, 10);
-        } else {
-          response = await ProductService.getProductList(page, 10);
-        }
+        const response = await ProductService.getProductList(page, 10);
 
-        // 检查是否仍需更新
         if (!isActive) return;
 
         const productList = response?.data?.products || [];
@@ -52,11 +47,12 @@ const Home = () => {
     return () => {
       isActive = false; // 仅标记本次 effect 失效
     };
-  }, [page, searchKeyword]);
+  }, [page]);
 
   const handleSearch = (keyword) => {
-    setSearchKeyword(keyword);
-    setPage(1); // 搜索时重置页码
+    if (keyword.trim()) {
+      navigate(`/search?keyword=${encodeURIComponent(keyword.trim())}`);
+    }
   };
 
   return (

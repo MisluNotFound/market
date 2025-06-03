@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FaHeart } from 'react-icons/fa';
 import '../styles/product-card.css';
 
 const ProductCard = ({ product: productData }) => {
@@ -20,6 +21,13 @@ const ProductCard = ({ product: productData }) => {
           alt={product.product.describe || '商品图片'}
           className="product-image"
         />
+        {(product.product.isSold || !product.product.isSelling) && (
+          <div className="product-status-overlay">
+            <span className={`status-text ${product.product.isSold ? 'sold' : 'off-shelf'}`}>
+              {product.product.isSold ? '已售罄' : '已下架'}
+            </span>
+          </div>
+        )}
       </div>
       <div className="product-info">
         <div className="product-header">
@@ -30,17 +38,27 @@ const ProductCard = ({ product: productData }) => {
           />
           <span className="username">{product.user.username}</span>
         </div>
-        <h3 className="product-price">¥{product.product.price || '0'}</h3>
-        {product.product.originalPrice && product.product.originalPrice > 0 && (
-          <p className="original-price">¥{product.product.originalPrice}</p>
-        )}
+        <div className="product-price">
+          <span className="current-price">¥{product.product.price || '0'}</span>
+          {product.product.originalPrice && product.product.originalPrice > 0 && (
+            <span className="original-price">¥{product.product.originalPrice}</span>
+          )}
+        </div>
         <p className="product-desc">{product.product.describe || '暂无描述'}</p>
         <div className="product-meta">
           <span className="location">{product.product.location}</span>
           {product.product.canSelfPickup && (
             <span className="pickup-tag">可自提</span>
           )}
+          <span className={`product-condition ${product.product.condition === '使用过' ? 'used' : 'new'}`}>
+            {product.product.condition === '使用过'
+              ? `已使用${product.product.usedTime || '未知时长'}`
+              : product.product.condition}
+          </span>
         </div>
+      </div>
+      <div className={`favorite-icon ${product.isLiked ? 'liked' : ''}`}>
+        <FaHeart />
       </div>
     </div>
   );

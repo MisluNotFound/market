@@ -51,6 +51,15 @@ func autoMigrate() error {
 		&models.ProductAttribute{},
 		&models.Message{},
 		&models.Conversation{},
+		&models.SearchHistory{},
+		&models.Like{},
+		&models.Credit{},
+		&models.OrderComment{},
+		&models.Address{},
+		&models.UserAddress{},
+		&models.InterestTag{},
+		&models.UserInterests{},
+		&models.Feedback{},
 	)
 
 	return err

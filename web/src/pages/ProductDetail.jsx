@@ -131,14 +131,17 @@ const ProductDetail = () => {
               className="buy-btn"
               onClick={async () => {
                 try {
-                  await OrderService.purchaseProduct(
+                  const response = await OrderService.purchaseProduct(
                     currentUser.id,
                     product.product.id,
                     product.product.price,
                     product.product.shippingPrice
                   );
-                  alert('购买成功！');
-                  navigate('/user-center');
+                  if (response.code === 200 && response.data?.orderID) {
+                    navigate(`/order/${response.data.orderID}`);
+                  } else {
+                    throw new Error(response.msg || '购买失败');
+                  }
                 } catch (error) {
                   alert(`购买失败: ${error.message}`);
                 }

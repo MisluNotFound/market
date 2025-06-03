@@ -11,6 +11,7 @@ import (
 	"github.com/mislu/market-api/internal/types/request"
 	"github.com/mislu/market-api/internal/types/response"
 	"github.com/mislu/market-api/internal/utils/lib"
+	"gorm.io/gorm"
 )
 
 var mobileRegex = regexp.MustCompile(`^1[3-9][0-9]{9}$`)
@@ -222,14 +223,14 @@ func Login(req *request.LoginReq) (response.LoginResp, exceptions.APIError) {
 	resp.AccessToken = accessToken
 	resp.RefreshToken = refreshToken
 	resp.UserID = user.ID
-	
+
 	return resp, nil
 }
 
 func GetUserInfo(req *request.GetUserInfoReq) (response.GetUserInfoResp, exceptions.APIError) {
 	var resp response.GetUserInfoResp
 
-	user, err := db.GetOne[*models.User](
+	user, err := db.GetOne[models.User](
 		db.Equal("id", req.UserID),
 	)
 
@@ -241,7 +242,51 @@ func GetUserInfo(req *request.GetUserInfoReq) (response.GetUserInfoResp, excepti
 		return resp, exceptions.BadRequestError(errUserNotFound, exceptions.UserNotExistsError)
 	}
 
-	resp.User = *user
-	// TODO get user products
+	resp.User = user
+
+	credit, err := db.GetOne[models.Credit](
+		db.Equal("user_id", req.UserID),
+	)
+	if err != nil {
+		return resp, exceptions.InternalServerError(err)
+	}
+
+	resp.Credit = credit
+
 	return resp, nil
+}
+
+func SelectInterestTags(req *request.SelectInterestTagsReq) exceptions.APIError {
+	userTags := make([]models.UserInterests, 0, len(req.Tags))
+
+	for _, tag := range req.Tags {
+		userTags = append(userTags, models.UserInterests{
+			UserID:        req.UserID,
+			InterestTagID: tag,
+		})
+	}
+
+	err := db.WithTransaction(func(tx *gorm.DB) error {
+		if len(userTags) == 0 {
+			return nil
+		}
+
+		err := db.Create(userTags)
+		if err != nil {
+			return err
+		}
+
+		user, err := db.GetOne[models.User](
+			db.Equal("id", req.UserID),
+		)
+		user.SelectedTags = true
+		err = db.Update(user)
+		return err
+	})
+
+	if err != nil {
+		return exceptions.InternalServerError(err)
+	}
+
+	return nil
 }

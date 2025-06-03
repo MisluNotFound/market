@@ -2,20 +2,32 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import AuthService from '../services/auth';
 import '../styles/login.css';
+import { message } from 'antd';
 
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
     try {
-      await AuthService.login(username, password);
-      navigate('/user-center');
-    } catch (err) {
-      setError('用户名或密码错误');
+      const response = await AuthService.login(username, password);
+      message.success('登录成功');
+
+      // 如果需要选择兴趣标签，跳转到兴趣标签选择页面
+      if (response.needSelectTags) {
+        navigate('/interest-tags');
+      } else {
+        navigate('/');
+      }
+    } catch (error) {
+      message.error(error.message || '登录失败');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -45,7 +57,7 @@ const Login = () => {
           />
         </div>
 
-        <button type="submit" className="login-btn">登录</button>
+        <button type="submit" className="login-btn" disabled={loading}>登录</button>
       </form>
 
       <div className="register-prompt">

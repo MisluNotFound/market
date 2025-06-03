@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Table, Button, message, Tag } from 'antd';
 import AuthService from '../services/auth';
 import OrderService from '../services/order';
@@ -17,9 +17,7 @@ const Title = styled.h2`
 
 const Orders = () => {
   const [loading, setLoading] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [orders, setOrders] = useState([]);
-  const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
   const navigate = useNavigate();
   const { type } = useParams();
@@ -33,14 +31,8 @@ const Orders = () => {
     fetchOrders();
   }, [navigate]);
 
-  const fetchOrders = async (isLoadMore = false) => {
-    if (isLoadMore) {
-      setLoadingMore(true);
-    } else {
-      setLoading(true);
-      setPage(1);
-    }
-
+  const fetchOrders = async () => {
+    setLoading(true);
     try {
       const user = await AuthService.getCurrentUser();
       if (!user) {
@@ -48,28 +40,25 @@ const Orders = () => {
         navigate('/login');
         return;
       }
-      const response = await OrderService.getOrderList(user.id, page, type === 'bought');
-      const newOrders = Array.isArray(response?.data?.orders) ? response.data.orders : [];
-      console.log(newOrders)
-      if (isLoadMore) {
-        setOrders(prev => [...prev, ...newOrders]);
+
+      let response;
+      if (type === 'reviews') {
+        // 获取未评价订单
+        response = await OrderService.getUncommentOrders(user.id);
       } else {
-        setOrders(newOrders);
+        // 获取普通订单列表
+        response = await OrderService.getOrderList(user.id, page, type === 'bought');
       }
 
-      setHasMore(response?.data?.hasMore || false);
+      const newOrders = Array.isArray(response?.data?.orders) ? response.data.orders : [];
+      console.log(newOrders)
+      setOrders(newOrders);
       setPage(prev => prev + 1);
     } catch (error) {
       message.error(error.message);
       setOrders([]);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadMore = () => {
-    if (hasMore && !loadingMore) {
-      fetchOrders(true);
     }
   };
 
@@ -142,7 +131,11 @@ const Orders = () => {
 
   return (
     <Container>
-      <Title>{type === 'bought' ? '我购买的订单' : '我售出的订单'}</Title>
+      <Title>
+        {type === 'bought' ? '我购买的订单' :
+          type === 'reviews' ? '待评价订单' :
+            '我售出的订单'}
+      </Title>
       <Table
         columns={columns}
         dataSource={orders}
@@ -150,17 +143,6 @@ const Orders = () => {
         rowKey="id"
         pagination={false}
       />
-      {hasMore && (
-        <div style={{ textAlign: 'center', marginTop: 16 }}>
-          <Button
-            onClick={loadMore}
-            loading={loadingMore}
-            disabled={loadingMore}
-          >
-            {loadingMore ? '加载中...' : '加载更多'}
-          </Button>
-        </div>
-      )}
     </Container>
   );
 };

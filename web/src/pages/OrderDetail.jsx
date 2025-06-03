@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Descriptions, Button, message, Tag } from 'antd';
+import { Descriptions, Button, message, Tag, Input } from 'antd';
 import AuthService from '../services/auth';
 import OrderService from '../services/order';
 
@@ -84,9 +84,13 @@ const OrderDetail = () => {
   const handlePay = async () => {
     setLoading(true);
     try {
-      await OrderService.payOrder(orderId);
-      message.success('订单支付成功');
-      fetchOrder();
+      const response = await OrderService.payOrder(orderId);
+      if (response.code === 200 && response.data?.payURL) {
+        // 跳转到支付宝支付页面
+        window.location.href = response.data.payURL;
+      } else {
+        throw new Error(response.msg || '获取支付链接失败');
+      }
     } catch (error) {
       message.error(error.message);
     } finally {
@@ -133,6 +137,163 @@ const OrderDetail = () => {
     }
   };
 
+  // 评论相关状态
+  const [comments, setComments] = useState([]);
+  const [commentContent, setCommentContent] = useState('');
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [replyContent, setReplyContent] = useState('');
+  const [rating, setRating] = useState(5); // 默认5星好评
+
+  // 渲染评论项
+  const renderComment = (comment, depth = 0) => {
+    return (
+      <div key={comment.id} style={{
+        marginLeft: depth * 20,
+        padding: '12px',
+        borderBottom: '1px solid #f0f0f0',
+        backgroundColor: depth > 0 ? '#fafafa' : 'transparent'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+          <img
+            src={comment.avatar || '/default-avatar.png'}
+            alt={comment.username}
+            style={{ width: '32px', height: '32px', borderRadius: '50%', marginRight: '8px' }}
+          />
+          <span style={{ fontWeight: 'bold' }}>{comment.username}</span>
+          {comment.replyTo && (
+            <span style={{ color: '#666', marginLeft: '8px' }}>
+              回复 @{comment.replyTo}
+            </span>
+          )}
+          <span style={{ color: '#999', marginLeft: 'auto' }}>
+            {new Date(comment.createdAt).toLocaleString()}
+          </span>
+        </div>
+        <div style={{ marginLeft: '40px' }}>
+          <p>{comment.comment}</p>
+          {comment.pics && comment.pics.split(',').map(pic => (
+            <img
+              key={pic}
+              src={pic}
+              style={{ width: '100px', height: '100px', objectFit: 'cover', marginRight: '8px' }}
+            />
+          ))}
+          {currentUser && (
+            <Button
+              type="text"
+              size="small"
+              onClick={() => setReplyingTo(comment)}
+              style={{ padding: 0 }}
+            >
+              回复
+            </Button>
+          )}
+        </div>
+
+        {replyingTo?.id === comment.id && (
+          <div style={{ marginTop: '12px', marginLeft: '40px' }}>
+            <Input.TextArea
+              rows={2}
+              value={replyContent}
+              onChange={(e) => setReplyContent(e.target.value)}
+              placeholder={`回复 ${comment.username}`}
+            />
+            <div style={{ marginTop: '8px', textAlign: 'right' }}>
+              <Button size="small" onClick={() => setReplyingTo(null)}>
+                取消
+              </Button>
+              <Button
+                type="primary"
+                size="small"
+                onClick={handleReply}
+                style={{ marginLeft: '8px' }}
+              >
+                发送
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {comment.replies?.map(reply => renderComment(reply, depth + 1))}
+      </div>
+    );
+  };
+
+  // 加载评论
+  useEffect(() => {
+    if (orderId) {
+      const loadComments = async () => {
+        try {
+          const res = await OrderService.getOrderComments(orderId);
+          setComments(res.data || []);
+        } catch (error) {
+          message.error(error.message);
+        }
+      };
+      loadComments();
+    }
+  }, [orderId]);
+
+  const handleCommentSubmit = async () => {
+    if (!commentContent.trim()) {
+      message.warning('请输入评论内容');
+      return;
+    }
+    try {
+      const isGood = rating >= 3; // 3星以上算好评
+      await OrderService.createOrderComment(orderId, commentContent, isGood);
+      const res = await OrderService.getOrderComments(orderId);
+      setComments(res.data || []);
+      message.success('评论提交成功');
+      setCommentContent('');
+      setRating(5); // 重置评分
+    } catch (error) {
+      message.error(error.message);
+    }
+  };
+
+  const handleReply = async () => {
+    if (!replyContent.trim()) {
+      message.warning('请输入回复内容');
+      return;
+    }
+    try {
+      await OrderService.replyOrderComment(orderId, replyingTo.id, replyContent);
+      const res = await OrderService.getOrderComments(orderId);
+      setComments(res.data || []);
+      message.success('回复提交成功');
+      setReplyingTo(null);
+      setReplyContent('');
+    } catch (error) {
+      message.error(error.message);
+    }
+  };
+
+  // 渲染评分星星
+  const renderRatingStars = () => {
+    return (
+      <div style={{ marginBottom: '12px' }}>
+        <span style={{ marginRight: '8px' }}>评分:</span>
+        {[1, 2, 3, 4, 5].map((star) => (
+          <span
+            key={star}
+            style={{
+              cursor: 'pointer',
+              color: star <= rating ? '#ffc107' : '#e4e5e9',
+              fontSize: '24px'
+            }}
+            onClick={() => setRating(star)}
+          >
+            ★
+          </span>
+        ))}
+        <span style={{ marginLeft: '8px', color: '#666' }}>
+          {rating >= 3.5 ? '好评' : '差评'}
+        </span>
+      </div>
+    );
+  };
+
   if (!order) return null;
 
   const isBuyer = currentUser && currentUser.id === order.userID;
@@ -170,7 +331,7 @@ const OrderDetail = () => {
         <Descriptions.Item label="完成时间">{order.finishTime ? order.finishTime.replace('T', ' ').substring(0, 16) : ''}</Descriptions.Item>
       </Descriptions>
 
-      <div style={{ marginTop: 24, textAlign: 'center' }}>
+      <div style={{ marginTop: 24, marginBottom: 24, textAlign: 'center' }}>
         {/* 待付款状态(1): 买家可支付或取消 */}
         {order.status === 1 && isBuyer && (
           <>
@@ -248,7 +409,48 @@ const OrderDetail = () => {
           </Button>
         )}
       </div>
-    </Container>
+
+      {/* 评论区域 */}
+      {order.status === 4 && (
+        <div style={{ marginTop: '32px', borderTop: '1px solid #f0f0f0', paddingTop: '24px' }}>
+          <h3 style={{ marginBottom: '16px' }}>商品评价</h3>
+
+          {/* 评论列表 */}
+          <div style={{ marginBottom: '24px' }}>
+            {comments.length > 0 ? (
+              comments.map(comment => renderComment(comment))
+            ) : (
+              <div style={{ textAlign: 'center', color: '#999', padding: '24px 0' }}>
+                暂无评价
+              </div>
+            )}
+          </div>
+
+          {/* 评论输入框 */}
+          {currentUser && (
+            <div>
+              {renderRatingStars()}
+              <Input.TextArea
+                rows={4}
+                value={commentContent}
+                onChange={(e) => setCommentContent(e.target.value)}
+                placeholder="写下您的评价..."
+                style={{ marginBottom: '12px' }}
+              />
+              <div style={{ textAlign: 'right' }}>
+                <Button
+                  type="primary"
+                  onClick={handleCommentSubmit}
+                  disabled={!commentContent.trim()}
+                >
+                  提交评价
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </Container >
   );
 };
 

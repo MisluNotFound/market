@@ -6,7 +6,9 @@ import {
   FaStore,
   FaCommentDots,
   FaChevronRight,
-  FaBoxOpen
+  FaBoxOpen,
+  FaBookmark,
+  FaMapMarkerAlt
 } from 'react-icons/fa';
 import AuthService from '../services/auth';
 import OrderService from '../services/order';
@@ -92,15 +94,12 @@ const UserCenter = () => {
 
       {/* 订单状态分类 */}
       <div className="order-sections">
-        <h2 className="section-title">我的订单</h2>
-
         <div className="order-cards">
           <div className="order-card" onClick={async () => {
             navigate('/orders/sold');
           }}>
             <div className="icon-container sold">
               <FaStore />
-              {orderStatus.sold > 0 && <span className="badge">{orderStatus.sold}</span>}
             </div>
             <span>我卖出的</span>
           </div>
@@ -110,7 +109,6 @@ const UserCenter = () => {
           }}>
             <div className="icon-container bought">
               <FaShoppingCart />
-              {orderStatus.bought > 0 && <span className="badge">{orderStatus.bought}</span>}
             </div>
             <span>我买到的</span>
           </div>
@@ -120,7 +118,6 @@ const UserCenter = () => {
           }}>
             <div className="icon-container review">
               <FaCommentDots />
-              {orderStatus.beEvaluated > 0 && <span className="badge">{orderStatus.beEvaluated}</span>}
             </div>
             <span>待评价</span>
           </div>
@@ -130,6 +127,19 @@ const UserCenter = () => {
               <FaBoxOpen />
             </div>
             <span>我的商品</span>
+          </div>
+
+          <div className="order-card" onClick={() => navigate('/my-favorites')}>
+            <div className="icon-container favorites">
+              <FaBookmark />
+            </div>
+            <span>我的收藏</span>
+          </div>
+          <div className="order-card" onClick={() => navigate('/addresses')}>
+            <div className="icon-container address">
+              <FaMapMarkerAlt />
+            </div>
+            <span>收货地址</span>
           </div>
         </div>
       </div>

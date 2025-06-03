@@ -3,9 +3,10 @@ package alipay
 import (
 	"context"
 	"fmt"
-	"log"
 	"math/rand"
+	"net/url"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/mislu/market-api/internal/core/payment/types"
@@ -13,28 +14,35 @@ import (
 	"github.com/smartwalle/alipay/v3"
 )
 
-var client *alipay.Client
-
 type AlipayService struct {
+	client *alipay.Client
 }
 
-func NewAlipayClient() {
+func NewAlipayClient() (*AlipayService, error) {
 	privateKey, err := os.ReadFile("D:\\repository\\m-market\\api\\keys\\private.txt")
 	if err != nil {
-		log.Fatal("read private key file failed", err)
+		return nil, err
+	}
+	publicKey, err := os.ReadFile("D:\\repository\\m-market\\api\\keys\\public.txt")
+	if err != nil {
+		return nil, err
 	}
 
 	cli, err := alipay.New(app.GetConfig().Alipay.APPID, string(privateKey), false)
 	if err != nil {
-		log.Fatal("new client failed", err)
+		return nil, err
 	}
 
-	client = cli
+	cli.LoadAliPayPublicKey(string(publicKey))
+	return &AlipayService{
+		client: cli,
+	}, nil
 }
 
-func (s *AlipayService) Pay(req types.PaymentRequest) (string, error) {
-	if client == nil {
-		return "", fmt.Errorf("alipay client not initialized")
+func (s *AlipayService) Pay(ctx context.Context, req types.PaymentRequest) (*types.PaymentResponse, error) {
+	resp := &types.PaymentResponse{}
+	if s.client == nil {
+		return resp, fmt.Errorf("alipay client not initialized")
 	}
 
 	pay := alipay.TradePagePay{
@@ -43,46 +51,49 @@ func (s *AlipayService) Pay(req types.PaymentRequest) (string, error) {
 			OutTradeNo:  req.OrderID,
 			TotalAmount: req.Amount,
 			ProductCode: "FAST_INSTANT_TRADE_PAY",
+			NotifyURL:   app.GetConfig().Server.BaseIP + "/api/order/alipay/notify",
 		},
 	}
 
-	form, err := client.TradePagePay(pay)
+	form, err := s.client.TradePagePay(pay)
 	if err != nil {
-		return "", fmt.Errorf("generate pay form failed: %v", err)
+		return resp, fmt.Errorf("generate pay form failed: %v", err)
 	}
 
-	return form.String(), nil
+	resp.PaymentURL = form.String()
+
+	return resp, nil
 }
 
 // Refund 发起退款
-func Refund(outTradeNo, refundAmount, refundReason string) (string, error) {
-	if client == nil {
-		return "", fmt.Errorf("alipay client not initialized")
+func (s *AlipayService) Refund(ctx context.Context, req types.RefundRequest) error {
+	if s.client == nil {
+		return fmt.Errorf("alipay client not initialized")
 	}
 
 	outRequestNo := "REFUND_" + randomString(16)
 	refund := alipay.TradeRefund{
-		OutTradeNo:   outTradeNo,
-		RefundAmount: refundAmount,
+		OutTradeNo:   req.OrderID,
+		RefundAmount: strconv.FormatFloat(req.Amount, 'f', -1, 64),
 		OutRequestNo: outRequestNo,
-		RefundReason: refundReason,
+		RefundReason: req.Reason,
 	}
 
-	result, err := client.TradeRefund(context.Background(), refund)
+	result, err := s.client.TradeRefund(context.Background(), refund)
 	if err != nil {
-		return "", fmt.Errorf("refund failed: %v", err)
+		return fmt.Errorf("refund failed: %v", err)
 	}
 
 	if result.Code != alipay.CodeSuccess {
-		return "", fmt.Errorf("refund failed: %s", result.SubMsg)
+		return fmt.Errorf("refund failed: %s", result.SubMsg)
 	}
 
-	return outRequestNo, nil
+	return nil
 }
 
 // QueryTrade 查询订单状态
-func QueryTrade(outTradeNo string) (*alipay.TradeQueryRsp, error) {
-	if client == nil {
+func (s *AlipayService) QueryTrade(outTradeNo string) (*types.QueryTradeResponse, error) {
+	if s.client == nil {
 		return nil, fmt.Errorf("alipay client not initialized")
 	}
 
@@ -90,7 +101,7 @@ func QueryTrade(outTradeNo string) (*alipay.TradeQueryRsp, error) {
 		OutTradeNo: outTradeNo,
 	}
 
-	result, err := client.TradeQuery(context.Background(), query)
+	result, err := s.client.TradeQuery(context.Background(), query)
 	if err != nil {
 		return nil, fmt.Errorf("query trade failed: %v", err)
 	}
@@ -99,52 +110,54 @@ func QueryTrade(outTradeNo string) (*alipay.TradeQueryRsp, error) {
 		return nil, fmt.Errorf("query trade failed: %s", result.SubMsg)
 	}
 
-	return result, nil
+	return &types.QueryTradeResponse{
+		TradeNo:      result.TradeNo,
+		OutTradeNo:   result.OutTradeNo,
+		BuyerLogonID: result.BuyerLogonId,
+		BuyerOpenID:  result.BuyerOpenId,
+		TradeStatus:  string(result.TradeStatus),
+	}, nil
 }
 
 // CloseTrade 关闭订单
-func CloseTrade(outTradeNo string) error {
-	if client == nil {
-		return fmt.Errorf("alipay client not initialized")
-	}
+// func CloseTrade(outTradeNo string) error {
+// 	if s.client == nil {
+// 		return fmt.Errorf("alipay client not initialized")
+// 	}
 
-	close := alipay.TradeClose{
-		OutTradeNo: outTradeNo,
-	}
+// 	close := alipay.TradeClose{
+// 		OutTradeNo: outTradeNo,
+// 	}
 
-	result, err := client.TradeClose(context.Background(), close)
-	if err != nil {
-		return fmt.Errorf("close trade failed: %v", err)
-	}
+// 	result, err := s.client.TradeClose(context.Background(), close)
+// 	if err != nil {
+// 		return fmt.Errorf("close trade failed: %v", err)
+// 	}
 
-	if result.Code != alipay.CodeSuccess {
-		return fmt.Errorf("close trade failed: %s", result.SubMsg)
-	}
+// 	if result.Code != alipay.CodeSuccess {
+// 		return fmt.Errorf("close trade failed: %s", result.SubMsg)
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 // VerifyNotify 验证异步通知
-// func VerifyNotify(r *http.Request) (map[string]string, error) {
-// 	if client == nil {
-// 		return nil, fmt.Errorf("alipay client not initialized")
-// 	}
+func (s *AlipayService) VerifyNotify(values url.Values) (*types.NotifyResponse, error) {
+	if s.client == nil {
+		return nil, fmt.Errorf("alipay client not initialized")
+	}
 
-// 	err := client.NotifyVerify(r, nil)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("verify notify failed: %v", err)
-// 	}
+	notification, err := s.client.DecodeNotification(values)
+	if err != nil {
+		return nil, fmt.Errorf("verify notify failed: %v", err)
+	}
 
-// 	params := make(map[string]string)
-// 	r.ParseForm()
-// 	for key, values := range r.Form {
-// 		if len(values) > 0 {
-// 			params[key] = values[0]
-// 		}
-// 	}
-
-// 	return params, nil
-// }
+	return &types.NotifyResponse{
+		TradeStatus: string(notification.TradeStatus),
+		TradeNo:     notification.TradeNo,
+		OutTradeNo:  notification.OutTradeNo,
+	}, nil
+}
 
 // // VerifyReturn 验证同步回调
 // func VerifyReturn(r *http.Request) (map[string]string, error) {

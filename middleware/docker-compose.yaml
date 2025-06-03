@@ -15,6 +15,11 @@ services:
       - ./volumes/mysql:/var/lib/mysql
     networks:
       - app-network
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   elasticsearch:
     build:
@@ -30,9 +35,14 @@ services:
       - "9200:9200"
       - "9300:9300"
     volumes:
-      - ./volumes/es:/usr/share/elasticsearch/data 
+      - ./volumes/es:/usr/share/elasticsearch/data
     networks:
       - app-network
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep status" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   rabbitmq:
     image: rabbitmq:3-management
@@ -41,12 +51,105 @@ services:
       RABBITMQ_DEFAULT_USER: "guest"
       RABBITMQ_DEFAULT_PASS: "guest"
     ports:
-      - "5672:5672"   # AMQP协议端口
+      - "5672:5672" # AMQP协议端口
       - "15672:15672" # 管理界面端口
     volumes:
       - ./volumes/rabbitmq:/var/lib/rabbitmq
     networks:
       - app-network
+    healthcheck:
+      test: [ "CMD", "rabbitmqctl", "status" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  redis:
+    image: redis:6.2
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./volumes/redis:/data
+    networks:
+      - app-network
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  gorse:
+    image: zhenghaoz/gorse-in-one
+    container_name: gorse
+    restart: unless-stopped
+    ports:
+      - "8086:8086" # gRPC port
+      - "8088:8088" # HTTP port
+    environment:
+      # Use Redis as cache storage backend
+      GORSE_CACHE_STORE: redis://redis:6379
+      # Use MySQL as data storage backend
+      GORSE_DATA_STORE: mysql://root:mislu_market@tcp(mysql:3306)/gorse?parseTime=true
+    command: >
+      -c /etc/gorse/config.toml --log-path /var/log/gorse/master.log --cache-path /var/lib/gorse/master_cache.data
+    volumes:
+      - ./config.toml:/etc/gorse/config.toml
+      - ./volumes/gorse/logs:/var/log/gorse
+      - ./volumes/gorse/cache:/var/lib/gorse
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app-network
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:8088/health/ready" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+  # zookeeper:
+  #   image: confluentinc/cp-zookeeper:7.4.0
+  #   container_name: zookeeper
+  #   environment:
+  #     ZOOKEEPER_CLIENT_PORT: 2181
+  #     ZOOKEEPER_TICK_TIME: 2000
+  #   ports:
+  #     - "2181:2181"
+  #   networks:
+  #     - app-network
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "zkCli.sh status | grep Mode"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 5
+
+  # kafka:
+  #   image: confluentinc/cp-kafka:7.4.0
+  #   container_name: kafka
+  #   depends_on:
+  #     - zookeeper
+  #   environment:
+  #     KAFKA_BROKER_ID: 1
+  #     KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+  #     KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+  #     KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+  #     KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+  #     KAFKA_NUM_PARTITIONS: 3
+  #     KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+  #     KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+  #     KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+  #     KAFKA_LOG_RETENTION_HOURS: 168
+  #   ports:
+  #     - "29092:29092"
+  #     - "9092:9092"
+  #   networks:
+  #     - app-network
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "kafka-topics --bootstrap-server kafka:9092 --list"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 5
 
 networks:
   app-network:

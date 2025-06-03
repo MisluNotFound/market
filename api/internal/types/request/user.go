@@ -42,3 +42,8 @@ type LoginReq struct {
 type GetUserInfoReq struct {
 	UserIDReq
 }
+
+type SelectInterestTagsReq struct {
+	UserIDReq
+	Tags []int `form:"tags" json:"tags"`
+}

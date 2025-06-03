@@ -18,9 +18,11 @@ type GetProductResp struct {
 
 type UserProduct struct {
 	models.User    `json:"user"`
+	models.Credit  `json:"credit"`
 	models.Product `json:"product"`
 	Categories     []uint          `json:"categories"`
 	Attributes     map[uint]string `json:"attributes"`
+	IsLiked        bool            `json:"isLiked"`
 }
 
 type GetUserProductsResp struct {
@@ -49,3 +51,10 @@ type WrappedCategory struct {
 	Children   []*WrappedCategory         `json:"children"`
 	Attributes []models.AttributeTemplate `json:"attributes"`
 }
+
+type GetUserLikesResp struct {
+	Products []UserProduct `json:"products"`
+	PageResp
+}
+
+type GetInterestTagsResp []models.InterestTag

@@ -179,7 +179,7 @@ func GetCategoryByMIME(mimeType string) string {
 }
 
 func CreateConversation(req *request.CreateConversationReq) exceptions.APIError {
-	conversation, err := db.GetOne[models.Conversation](
+	fromConversation, err := db.GetOne[models.Conversation](
 		db.Equal("from_user_id", req.FromUserID),
 		db.Equal("to_user_id", req.ToUserID),
 	)
@@ -187,30 +187,55 @@ func CreateConversation(req *request.CreateConversationReq) exceptions.APIError 
 		return exceptions.InternalServerError(err)
 	}
 
-	if conversation.FromUserID == req.FromUserID {
-		conversation.MarkDeleted = false
-		conversation.CurrentProductID = req.ProductID
-		err := db.Update(&conversation)
-		if err != nil {
-			return exceptions.InternalServerError(err)
+	toConversation, err := db.GetOne[models.Conversation](
+		db.Equal("from_user_id", req.ToUserID),
+		db.Equal("to_user_id", req.FromUserID),
+	)
+	if err != nil {
+		return exceptions.InternalServerError(err)
+	}
+
+	err = db.WithTransaction(func(tx *gorm.DB) error {
+		// 对话存在，则更新
+		if fromConversation.FromUserID == req.FromUserID {
+			fromConversation.MarkDeleted = false
+			fromConversation.LastMessageTime = time.Now()
+			err := db.Update(&fromConversation, tx)
+			if err != nil {
+				return err
+			}
+
+			toConversation.MarkDeleted = false
+			toConversation.LastMessageTime = time.Now()
+			err = db.Update(&toConversation, tx)
+			if err != nil {
+				return err
+			}
+			return nil
 		}
+
+		// 对话不存在，则创建
+		conversations := []*models.Conversation{
+			&models.Conversation{
+				FromUserID:      req.FromUserID,
+				ToUserID:        req.ToUserID,
+				LastMessageTime: time.Now(),
+			},
+			&models.Conversation{
+				FromUserID:      req.ToUserID,
+				ToUserID:        req.FromUserID,
+				LastMessageTime: time.Now(),
+			},
+		}
+
+		err = db.Create(conversations, tx)
+		if err != nil {
+			return err
+		}
+
 		return nil
-	}
+	})
 
-	conversations := []*models.Conversation{
-		&models.Conversation{
-			FromUserID:       req.FromUserID,
-			ToUserID:         req.ToUserID,
-			CurrentProductID: req.ProductID,
-		},
-		&models.Conversation{
-			FromUserID:       req.ToUserID,
-			ToUserID:         req.FromUserID,
-			CurrentProductID: req.ProductID,
-		},
-	}
-
-	err = db.Create(conversations)
 	if err != nil {
 		return exceptions.InternalServerError(err)
 	}
@@ -219,6 +244,7 @@ func CreateConversation(req *request.CreateConversationReq) exceptions.APIError 
 }
 
 func RecordLastReadMessage(fromUserID, toUserID string, lastMessageID string) error {
+	// TODO 重新思考一下何时更新 可以先每次收到之后旧更新保证效果
 	conversation, err := db.GetOne[models.Conversation](
 		// 获取接收方的conversation
 		db.Equal("from_user_id", toUserID),
@@ -274,8 +300,8 @@ func GetConversationList(req *request.GetConversationListReq) (response.GetConve
 		}
 
 		resp = append(resp, response.ConversationWithUnReadCount{
-			User:        user,
-			UnreadCount: int(unreadCount),
+			User:         user,
+			UnreadCount:  int(unreadCount),
 			Conversation: conversation,
 		})
 	}

@@ -1,9 +1,14 @@
 package service
 
 import (
+	"context"
 	"errors"
+	"net/url"
+	"strconv"
 	"time"
 
+	"github.com/mislu/market-api/internal/core/payment"
+	"github.com/mislu/market-api/internal/core/payment/types"
 	"github.com/mislu/market-api/internal/db"
 	"github.com/mislu/market-api/internal/types/exceptions"
 	"github.com/mislu/market-api/internal/types/models"
@@ -23,10 +28,11 @@ const (
 )
 
 var (
-	errOrderOntFound = errors.New("order not found")
+	errOrderNotFound = errors.New("order not found")
 )
 
-func PurchaseProduct(req *request.PurchaseProductReq) exceptions.APIError {
+func PurchaseProduct(req *request.PurchaseProductReq) (response.PurchaseProductResp, exceptions.APIError) {
+	var resp response.PurchaseProductResp
 	// create an order
 
 	// TODO check if the product is available in cache
@@ -37,19 +43,19 @@ func PurchaseProduct(req *request.PurchaseProductReq) exceptions.APIError {
 	)
 
 	if err != nil {
-		return exceptions.InternalServerError(err)
+		return resp, exceptions.InternalServerError(err)
 	}
 
 	if !product.Exists() {
-		return exceptions.BadRequestError(errProductNotFound, exceptions.ProductNotFoundError)
+		return resp, exceptions.BadRequestError(errProductNotFound, exceptions.ProductNotFoundError)
 	}
 
 	if product.IsSold {
-		return exceptions.BadRequestError(errProductSold, exceptions.ProductSoldError)
+		return resp, exceptions.BadRequestError(errProductSold, exceptions.ProductSoldError)
 	}
 
 	if !product.IsSelling {
-		return exceptions.BadRequestError(errors.New("product is off shelves"), exceptions.ProductNotAvailableError)
+		return resp, exceptions.BadRequestError(errors.New("product is off shelves"), exceptions.ProductNotAvailableError)
 	}
 
 	order, err := db.GetOne[*models.Order](
@@ -59,15 +65,15 @@ func PurchaseProduct(req *request.PurchaseProductReq) exceptions.APIError {
 	)
 
 	if err != nil {
-		return exceptions.InternalServerError(err)
+		return resp, exceptions.InternalServerError(err)
 	}
 
 	if order.UserID == req.UserID {
-		return nil
+		return resp, nil
 	}
 
 	if order.Exists() {
-		return exceptions.BadRequestError(errors.New("order already exists"), exceptions.AvatarSizeExceededError)
+		return resp, exceptions.BadRequestError(errors.New("order already exists"), exceptions.AvatarSizeExceededError)
 	}
 
 	order = &models.Order{
@@ -77,20 +83,19 @@ func PurchaseProduct(req *request.PurchaseProductReq) exceptions.APIError {
 		Status:      orderStatusPending,
 		TotalAmount: req.TotalAmount,
 		ShipAmount:  req.ShipAmount,
-		PayTime:     time.Now(),
 	}
 
 	// TODO use rabbit mq dead queue to delete the order if not paid in 15 minutes
 	if err := db.Create(order); err != nil {
-		return exceptions.InternalServerError(err)
+		return resp, exceptions.InternalServerError(err)
 	}
 
 	product.IsSold = true
 	if err := db.Update(product); err != nil {
-		return exceptions.InternalServerError(err)
+		return resp, exceptions.InternalServerError(err)
 	}
-
-	return nil
+	resp.OrderID = order.ID
+	return resp, nil
 }
 
 func GetAllOrderStatus(req *request.GetAllOrderStatusReq) (response.GetAllOrderStatusResp, exceptions.APIError) {
@@ -198,7 +203,7 @@ func ConfirmOrderSigned(req *request.ConfirmOrderReq) exceptions.APIError {
 	}
 
 	if !order.Exists() {
-		return exceptions.BadRequestError(errOrderOntFound, exceptions.OrderNotFoundError)
+		return exceptions.BadRequestError(errOrderNotFound, exceptions.OrderNotFoundError)
 	}
 
 	if !req.Refound && !order.IsOwner(req.UserID) {
@@ -257,7 +262,7 @@ func ConfirmOrderShipped(req *request.ConfirmOrderReq) exceptions.APIError {
 	}
 
 	if !order.Exists() {
-		return exceptions.BadRequestError(errOrderOntFound, exceptions.OrderNotFoundError)
+		return exceptions.BadRequestError(errOrderNotFound, exceptions.OrderNotFoundError)
 	}
 
 	if req.Refound && !order.IsOwner(req.UserID) {
@@ -291,34 +296,66 @@ func ConfirmOrderShipped(req *request.ConfirmOrderReq) exceptions.APIError {
 	return nil
 }
 
-func PayOrder(req *request.PayOrderReq) exceptions.APIError {
+func PayOrder(req *request.PayOrderReq) (response.PayOrderResp, exceptions.APIError) {
+	var resp response.PayOrderResp
 	order, err := db.GetOne[models.Order](
 		db.Equal("id", req.OrderID),
 	)
 
 	if err != nil {
-		return exceptions.InternalServerError(err)
+		return resp, exceptions.InternalServerError(err)
 	}
 
 	if !order.Exists() {
-		return exceptions.BadRequestError(errOrderOntFound, exceptions.OrderNotFoundError)
+		return resp, exceptions.BadRequestError(errOrderNotFound, exceptions.OrderNotFoundError)
 	}
 
 	if !order.IsOwner(req.UserID) {
-		return exceptions.BadRequestError(errors.New("not the owner of the order"), exceptions.UserNotOrderOwnerError)
+		return resp, exceptions.BadRequestError(errors.New("not the owner of the order"), exceptions.UserNotOrderOwnerError)
 	}
 
-	// TODO implement
 	if order.Status != orderStatusPending {
-		return exceptions.BadRequestError(errors.New("order is not to be paid"), exceptions.OrderNotToBePaidError)
+		return resp, exceptions.BadRequestError(errors.New("order is not to be paid"), exceptions.OrderNotToBePaidError)
 	}
 
 	order.Status = orderStatusPaid
+	order.PayTime = time.Now()
 	if err := db.Update(order); err != nil {
-		return exceptions.InternalServerError(err)
+		return resp, exceptions.InternalServerError(err)
 	}
 
-	return nil
+	var paymentType types.PaymentType
+	switch req.Method {
+	case "alipay":
+		paymentType = types.Alipay
+	case "wechat":
+		paymentType = types.Wechat
+	}
+	paymentService, err := payment.NewPaymentService(paymentType)
+	if err != nil {
+		return resp, exceptions.InternalServerError(err)
+	}
+
+	product, err := db.GetOne[models.Product](
+		db.Equal("id", order.ProductID),
+		db.Fields("describe"),
+	)
+	if err != nil {
+		return resp, exceptions.InternalServerError(err)
+	}
+
+	payResp, err := paymentService.Pay(context.Background(), types.PaymentRequest{
+		OrderID: req.OrderID,
+		Amount:  strconv.FormatFloat(order.TotalAmount, 'f', -1, 64),
+		Subject: product.Describe,
+	})
+	if err != nil {
+		return resp, exceptions.InternalServerError(err)
+	}
+
+	order.PayMethod = req.Method
+	resp.PayURL = payResp.PaymentURL
+	return resp, nil
 }
 
 func GetOrder(req *request.GetOrderReq) (response.GetOrderResp, exceptions.APIError) {
@@ -382,7 +419,7 @@ func RefoundOrder(req *request.ConfirmOrderReq) exceptions.APIError {
 	}
 
 	if !order.Exists() {
-		return exceptions.BadRequestError(errOrderOntFound, exceptions.OrderNotFoundError)
+		return exceptions.BadRequestError(errOrderNotFound, exceptions.OrderNotFoundError)
 	}
 
 	if !order.IsOwner(req.UserID) {
@@ -411,7 +448,7 @@ func CancelOrder(req *request.CancelOrderReq) exceptions.APIError {
 	}
 
 	if !order.Exists() {
-		return exceptions.BadRequestError(errOrderOntFound, exceptions.OrderNotFoundError)
+		return exceptions.BadRequestError(errOrderNotFound, exceptions.OrderNotFoundError)
 	}
 
 	if !order.IsOwner(req.UserID) {
@@ -444,4 +481,85 @@ func CancelOrder(req *request.CancelOrderReq) exceptions.APIError {
 	}
 
 	return nil
+}
+
+func AlipayNotify(values url.Values) exceptions.APIError {
+	paymentService, err := payment.NewPaymentService(types.Alipay)
+	if err != nil {
+		return exceptions.InternalServerError(err)
+	}
+
+	notify, err := paymentService.VerifyNotify(values)
+	if err != nil {
+		return exceptions.InternalServerError(err)
+	}
+
+	order, err := db.GetOne[models.Order](
+		db.Equal("id", notify.OutTradeNo),
+	)
+
+	if err != nil {
+		return exceptions.InternalServerError(err)
+	}
+
+	if !order.Exists() {
+		return exceptions.BadRequestError(errors.New("order not found"), exceptions.OrderNotFoundError)
+	}
+
+	if notify.TradeStatus == "TRADE_SUCCESS" {
+		order.Status = orderStatusPaid
+		order.PayTime = time.Now()
+		if err := db.Update(order); err != nil {
+			return exceptions.InternalServerError(err)
+		}
+	}
+
+	return nil
+}
+
+func GetUnCommentOrder(req *request.GetUncommentOrder) (response.GetUnCommentOrderResp, exceptions.APIError) {
+	var resp response.GetUnCommentOrderResp
+
+	queries := []db.GenericQuery{
+		db.Equal("user_id", req.UserID),
+		db.OrderBy("created_at", true),
+		db.Equal("status", orderStatusDone),
+		db.Equal("is_evaluated", false),
+	}
+
+	orders, err := db.GetAll[models.Order](queries...)
+	if err != nil {
+		return resp, exceptions.InternalServerError(err)
+	}
+
+	sellerOrders := make([]response.UserOrder, 0, len(orders))
+	for _, order := range orders {
+		userID := order.SellerID
+
+		sellerOrder := response.UserOrder{}
+		user, err := db.GetOne[models.User](
+			db.Fields("avatar", "username", "id"),
+			db.Equal("id", userID),
+		)
+		if err != nil {
+			return resp, exceptions.InternalServerError(err)
+		}
+
+		product, err := db.GetOne[models.Product](
+			db.Equal("id", order.ProductID),
+		)
+
+		if err != nil {
+			return resp, exceptions.InternalServerError(err)
+		}
+
+		sellerOrder.Product = product
+		sellerOrder.Order = order
+		sellerOrder.User = user
+		sellerOrders = append(sellerOrders, sellerOrder)
+	}
+
+	resp.Orders = sellerOrders
+
+	return resp, nil
 }

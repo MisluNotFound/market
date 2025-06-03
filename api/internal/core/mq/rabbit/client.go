@@ -1,90 +1,118 @@
-package rabbit
+package rabbitmq
 
 import (
-	"errors"
+	"context"
 	"fmt"
+	"time"
+
+	"github.com/mislu/market-api/internal/core/mq"
 	"github.com/streadway/amqp"
-	"sync"
 )
 
-// Client RabbitMQ 客户端
-type Client struct {
+// RabbitMQQueue implements a RabbitMQ-based message queue
+type RabbitMQQueue struct {
 	conn    *amqp.Connection
 	channel *amqp.Channel
-	config  Config
-	mu      sync.Mutex
+	queue   string
 }
 
-// NewClient 创建新的 RabbitMQ 客户端
-func NewClient(config Config) (*Client, error) {
-	conn, err := amqp.Dial(config.URL)
+func NewRabbitMQQueue(url, queue string) (*RabbitMQQueue, error) {
+	conn, err := amqp.Dial(url)
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to RabbitMQ: %v", err)
+		return nil, fmt.Errorf("failed to connect to RabbitMQ: %w", err)
 	}
 
-	channel, err := conn.Channel()
+	ch, err := conn.Channel()
 	if err != nil {
-		_ = conn.Close()
-		return nil, fmt.Errorf("failed to open channel: %v", err)
+		conn.Close()
+		return nil, fmt.Errorf("failed to open channel: %w", err)
 	}
 
-	// 声明交换机
-	err = channel.ExchangeDeclare(
-		config.Exchange,
-		"direct", // 类型
-		true,     // 持久化
-		false,    // 自动删除
-		false,    // 内部
-		false,    // 非阻塞
-		nil,      // 参数
+	_, err = ch.QueueDeclare(
+		queue,
+		true,  // durable
+		false, // autoDelete
+		false, // exclusive
+		false, // noWait
+		nil,   // args
 	)
 	if err != nil {
-		_ = channel.Close()
-		_ = conn.Close()
-		return nil, fmt.Errorf("failed to declare exchange: %v", err)
+		ch.Close()
+		conn.Close()
+		return nil, fmt.Errorf("failed to declare queue: %w", err)
 	}
 
-	return &Client{
+	return &RabbitMQQueue{
 		conn:    conn,
-		channel: channel,
-		config:  config,
+		channel: ch,
+		queue:   queue,
 	}, nil
 }
 
-// Close 关闭连接
-func (c *Client) Close() error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	var errs []error
-
-	if c.channel != nil {
-		if err := c.channel.Close(); err != nil {
-			errs = append(errs, err)
-		}
-		c.channel = nil
-	}
-
-	if c.conn != nil {
-		if err := c.conn.Close(); err != nil {
-			errs = append(errs, err)
-		}
-		c.conn = nil
-	}
-
-	if len(errs) > 0 {
-		return errors.Join(errs...)
+func (q *RabbitMQQueue) Publish(ctx context.Context, message mq.Message) error {
+	err := q.channel.Publish(
+		"",      // exchange
+		q.queue, // routing key
+		false,   // mandatory
+		false,   // immediate
+		amqp.Publishing{
+			ContentType:  "application/octet-stream",
+			DeliveryMode: amqp.Persistent,
+			MessageId:    message.ID,
+			Body:         message.Content,
+			Timestamp:    time.Now(),
+		})
+	if err != nil {
+		return fmt.Errorf("failed to publish message: %w", err)
 	}
 	return nil
 }
 
-// Channel 获取 channel (线程安全)
-func (c *Client) Channel() (*amqp.Channel, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	if c.channel == nil {
-		return nil, errors.New("channel is closed")
+func (q *RabbitMQQueue) Consume(ctx context.Context) (<-chan mq.Message, error) {
+	msgs, err := q.channel.Consume(
+		q.queue, // queue
+		"",      // consumer
+		true,    // autoAck
+		false,   // exclusive
+		false,   // noLocal
+		false,   // noWait
+		nil,     // args
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to start consumer: %w", err)
 	}
-	return c.channel, nil
+
+	messageChan := make(chan mq.Message)
+	go func() {
+		defer close(messageChan)
+		for {
+			select {
+			case msg, ok := <-msgs:
+				if !ok {
+					return
+				}
+				messageChan <- mq.Message{
+					ID:      msg.MessageId,
+					Content: msg.Body,
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+	return messageChan, nil
+}
+
+func (q *RabbitMQQueue) Close() error {
+	var channelErr, connErr error
+	if err := q.channel.Close(); err != nil {
+		channelErr = fmt.Errorf("failed to close channel: %w", err)
+	}
+	if err := q.conn.Close(); err != nil {
+		connErr = fmt.Errorf("failed to close connection: %w", err)
+	}
+	if channelErr != nil || connErr != nil {
+		return fmt.Errorf("errors closing rabbitmq queue: channel=%v, connection=%v", channelErr, connErr)
+	}
+	return nil
 }

@@ -31,6 +31,7 @@ type ConfirmOrderReq struct {
 type PayOrderReq struct {
 	UserIDReq
 	OrderIDReq
+	Method string `form:"method"`
 }
 
 type GetOrderReq struct {
@@ -41,4 +42,8 @@ type GetOrderReq struct {
 type CancelOrderReq struct {
 	UserIDReq
 	OrderIDReq
+}
+
+type GetUncommentOrder struct {
+	UserIDReq
 }

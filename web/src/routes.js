@@ -11,7 +11,11 @@ import CreateProduct from './pages/CreateProduct';
 import ProductDetail from './pages/ProductDetail';
 import EditProduct from './pages/EditProduct';
 import MyProducts from './pages/MyProducts';
+import Favorites from './pages/Favorites';
+import AddressManagement from './pages/AddressManagement';
 import Chat from './components/Chat';
+import SearchResults from './pages/SearchResults';
+import InterestTags from './pages/InterestTags';
 import AuthService from './services/auth';
 
 const protectedLoader = async () => {
@@ -28,8 +32,10 @@ const router = createBrowserRouter([
     element: <App />,
     children: [
       { path: '/', element: <Home /> },
+      { path: '/search', element: <SearchResults /> },
       { path: '/login', element: <Login /> },
       { path: '/register', element: <Register /> },
+      { path: '/interest-tags', element: <InterestTags /> },
       {
         path: '/user-center',
         element: <UserCenter />,
@@ -66,8 +72,18 @@ const router = createBrowserRouter([
         loader: protectedLoader
       },
       {
+        path: '/my-favorites',
+        element: <Favorites />,
+        loader: protectedLoader
+      },
+      {
         path: '/edit-product/:id',
         element: <EditProduct />,
+        loader: protectedLoader
+      },
+      {
+        path: '/addresses',
+        element: <AddressManagement />,
         loader: protectedLoader
       },
       {

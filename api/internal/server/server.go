@@ -8,6 +8,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/mislu/market-api/internal/core/im"
+	"github.com/mislu/market-api/internal/core/payment"
+	"github.com/mislu/market-api/internal/core/recommend"
 	resourcemanager "github.com/mislu/market-api/internal/core/resource_manager"
 	"github.com/mislu/market-api/internal/db"
 	"github.com/mislu/market-api/internal/es"
@@ -132,6 +134,8 @@ func Run() {
 	// init resource manager
 	resourcemanager.InitGlobalResourceManager()
 
+	recommend.InitGlobalWorker()
+	payment.InitPaymentService()
 	// init gin
 	server := newServer(logger)
 

@@ -5,7 +5,7 @@ const API_BASE_URL = 'http://localhost:3200/api/order';
 const OrderService = {
   // 购买商品
   purchaseProduct: async (userId, productId, totalAmount, shipAmount = 0) => {
-    
+
     try {
       const accessToken = localStorage.getItem('accessToken');
       const response = await axios.post(`${API_BASE_URL}/${userId}/${productId}`, {
@@ -184,6 +184,79 @@ const OrderService = {
       return response.data;
     } catch (error) {
       throw new Error(error.response?.data?.message || '取消订单失败');
+    }
+  },
+
+  // 获取订单评论
+  getOrderComments: async (orderId, page = 1, size = 10) => {
+    try {
+      const accessToken = localStorage.getItem('accessToken');
+      const userId = localStorage.getItem('userId');
+      const response = await axios.get(`${API_BASE_URL}/comment/${orderId}`, {
+        params: { page, size },
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || '获取评论失败');
+    }
+  },
+
+  // 创建订单评论
+  createOrderComment: async (orderId, comment, isGood, pics = '') => {
+    try {
+      const accessToken = localStorage.getItem('accessToken');
+      const userId = localStorage.getItem('userId');
+      const response = await axios.post(`${API_BASE_URL}/comment/${orderId}`, {
+        comment,
+        isGood,
+        pics
+      }, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || '提交评论失败');
+    }
+  },
+
+  // 回复订单评论
+  replyOrderComment: async (orderId, commentId, comment) => {
+    try {
+      const accessToken = localStorage.getItem('accessToken');
+      const userId = localStorage.getItem('userId');
+      const response = await axios.post(`${API_BASE_URL}/comment/${orderId}/reply`, {
+        commentID: commentId,
+        comment
+      }, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || '回复评论失败');
+    }
+  },
+
+  // 获取未评价订单
+  getUncommentOrders: async (userId) => {
+    try {
+      const accessToken = localStorage.getItem('accessToken');
+      const response = await axios.get(`${API_BASE_URL}/${userId}/uncomment`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      });
+      return {
+        data: response.data.data
+      };
+    } catch (error) {
+      throw new Error(error.response?.data?.message || '获取未评价订单失败');
     }
   }
 };

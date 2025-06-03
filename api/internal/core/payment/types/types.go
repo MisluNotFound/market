@@ -1,6 +1,9 @@
 package types
 
-import "context"
+import (
+	"context"
+	"net/url"
+)
 
 // PaymentType 支付类型枚举
 type PaymentType string
@@ -68,9 +71,30 @@ type TransferRequest struct {
 	Remark    string      // 转账备注
 }
 
+type QueryTradeResponse struct {
+	TradeNo        string
+	OutTradeNo     string
+	BuyerLogonID   string
+	BuyerOpenID    string
+	TradeStatus    string
+	TotalAmount    string
+	TransCurrency  string
+	SettleCurrency string
+	SettleAmount   string
+	PayCurrency    string
+}
+
+type NotifyResponse struct {
+	TradeNo     string
+	OutTradeNo  string
+	TradeStatus string
+}
+
 // PaymentService 支付服务接口
 type PaymentService interface {
 	Pay(ctx context.Context, req PaymentRequest) (*PaymentResponse, error)
 	Refund(ctx context.Context, req RefundRequest) error
-	Transfer(ctx context.Context, req TransferRequest) error
+	// Transfer(ctx context.Context, req TransferRequest) error
+	QueryTrade(outTradeNo string) (*QueryTradeResponse, error)
+	VerifyNotify(values url.Values) (*NotifyResponse, error)
 }

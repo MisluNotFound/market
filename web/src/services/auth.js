@@ -13,6 +13,12 @@ const AuthService = {
       localStorage.setItem('refreshToken', response.refreshToken);
       // 初始化IMService
       imServiceInstance = new IMService(response.userID);
+
+      // 检查是否需要选择兴趣标签
+      if (!response.selectedTag) {
+        return { ...response, needSelectTags: true };
+      }
+
       return response;
     } catch (error) {
       throw error;

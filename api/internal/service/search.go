@@ -1,6 +1,8 @@
 package service
 
 import (
+	"time"
+
 	"github.com/mislu/market-api/internal/db"
 	"github.com/mislu/market-api/internal/es"
 	"github.com/mislu/market-api/internal/types/exceptions"
@@ -11,6 +13,16 @@ import (
 
 func SearchProduct(req *request.SearchProductReq) (response.SearchProductResp, exceptions.APIError) {
 	var resp response.SearchProductResp
+
+	if len(req.UserID) > 0 {
+		searchHistory := models.SearchHistory{
+			UserID:     req.UserID,
+			Keyword:    req.Keyword,
+			SearchTime: time.Now().Unix(),
+		}
+		db.Create(&searchHistory)
+	}
+
 	query := buildSearchReq(req)
 
 	// 从es获取商品搜索结果
@@ -58,6 +70,14 @@ func SearchProduct(req *request.SearchProductReq) (response.SearchProductResp, e
 		}
 	}
 
+	history := &models.SearchHistory{
+		UserID:     req.UserID,
+		Keyword:    req.Keyword,
+		SearchTime: time.Now().Unix(),
+	}
+
+	db.Create(history)
+
 	resp.Products = userProduct
 	resp.Page = req.Page
 	resp.Size = req.Size
@@ -75,38 +95,6 @@ func buildSearchReq(req *request.SearchProductReq) map[string]interface{} {
 		})
 	}
 
-	if len(req.Categories) > 0 {
-		mustQueries = append(mustQueries, map[string]interface{}{
-			"terms": map[string]interface{}{
-				"category": req.Categories,
-			},
-		})
-	}
-
-	for _, attr := range req.Attributes {
-		mustQueries = append(mustQueries, map[string]interface{}{
-			"nested": map[string]interface{}{
-				"path": "attributes",
-				"query": map[string]interface{}{
-					"bool": map[string]interface{}{
-						"must": []map[string]interface{}{
-							{
-								"term": map[string]interface{}{
-									"attributes.key": attr.Key,
-								},
-							},
-							{
-								"term": map[string]interface{}{
-									"attributes.value": attr.Value,
-								},
-							},
-						},
-					},
-				},
-			},
-		})
-	}
-
 	query := map[string]interface{}{
 		"from": (req.Page - 1) * req.Size,
 		"size": req.Size,
@@ -117,19 +105,42 @@ func buildSearchReq(req *request.SearchProductReq) map[string]interface{} {
 		},
 	}
 
-	if req.Sort.Field != "" {
-		order := "asc"
-		if req.Sort.Decs {
-			order = "desc"
-		}
-		query["sort"] = []map[string]interface{}{
-			{
-				req.Sort.Field: map[string]interface{}{
-					"order": order,
-				},
-			},
-		}
-	}
+	// if req.Sort.Field != "" {
+	// 	order := "asc"
+	// 	if req.Sort.Decs {
+	// 		order = "desc"
+	// 	}
+	// 	query["sort"] = []map[string]interface{}{
+	// 		{
+	// 			req.Sort.Field: map[string]interface{}{
+	// 				"order": order,
+	// 			},
+	// 		},
+	// 	}
+	// }
 
 	return query
+}
+
+func GetSearchHistory(req *request.GetSearchHistoryReq) (response.SearchHistoryResp, exceptions.APIError) {
+	var resp response.SearchHistoryResp
+
+	var pageQuery db.GenericQuery
+	if !req.ShowAll {
+		pageQuery = db.Page(1, 10)
+	}
+
+	history, err := db.GetAll[models.SearchHistory](
+		db.Equal("user_id", req.UserID),
+		db.OrderBy("search_time", true),
+		db.GreaterThan("search_time", time.Now().AddDate(0, -1, 0).Unix()),
+		pageQuery,
+	)
+
+	if err != nil {
+		return resp, exceptions.InternalServerError(err)
+	}
+
+	resp.History = history
+	return resp, nil
 }

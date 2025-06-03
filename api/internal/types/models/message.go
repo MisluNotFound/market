@@ -8,7 +8,7 @@ import (
 
 type Message struct {
 	ID             string    `gorm:"primaryKey;type:varchar(50)" json:"id"`
-	ConversationID string    `gorm:"column:conversation_id;index;type:varchar(50)" json:"conversation_id"`
+	ConversationID string    `gorm:"column:conversation_id;index;type:varchar(80)" json:"conversation_id"`
 	FromUserID     string    `gorm:"column:from_userd_id;index;type:varchar(36)" json:"from_user_id"`
 	ToUserID       string    `gorm:"column:to_userd_id;index;type:varchar(36)" json:"to_user_id"`
 	Content        string    `gorm:"type:text" json:"content"`
@@ -30,7 +30,6 @@ type Conversation struct {
 	LastMessageTime    time.Time `gorm:"column:last_message_time;index" json:"lastMessageTime"`
 	LastReadMessageID  string    `gorm:"column:last_read_message_id;type:varchar(36)" json:"lastReadMessageID"` // 记录离线前的最后一条消息
 	MarkDeleted        bool      `gorm:"column:mark_deleted;default:false" json:"-"`
-	CurrentProductID   string    `gorm:"column:current_product_id;type:varchar(36)" json:"currentProductID"`
 }
 
 func (Conversation) TableName() string {

@@ -147,17 +147,26 @@ class IMService {
   }
 
   async createConversation(fromUserID: string, toUserID: string, productID: string): Promise<any> {
+    const accessToken = localStorage.getItem('accessToken');
     const response = await axios.post('http://localhost:3200/api/conversation/create', {
       fromUserID,
       toUserID,
       productID
+    }, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
     });
     return response.data;
   }
 
   async getConversationList(userID: string): Promise<Conversation[]> {
-    console.log(userID)
-    const response = await axios.get(`http://localhost:3200/api/conversation/${userID}/list`);
+    const accessToken = localStorage.getItem('accessToken');
+    const response = await axios.get(`http://localhost:3200/api/conversation/${userID}/list`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
     return response.data.data;
   }
 
@@ -166,7 +175,11 @@ class IMService {
     toUserID: string,
     pageReq: PageReq = { page: 1, size: 20 }
   ): Promise<MessageListResponse> {
+    const accessToken = localStorage.getItem('accessToken');
     const response = await axios.get('http://localhost:3200/api/conversation/messages', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      },
       params: {
         fromUserID,
         toUserID,

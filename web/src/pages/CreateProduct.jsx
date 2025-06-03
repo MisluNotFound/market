@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import React from 'react';
 
 // 递归查找分类
 const findCategoryById = (categories, id) => {
@@ -13,25 +14,30 @@ const findCategoryById = (categories, id) => {
 };
 
 // 递归渲染分类选项
-const renderCategoryOptions = (categories, level = 0) => {
-  return categories.map(category => (
-    <>
-      <option
-        key={category.ID}
-        value={category.ID}
-        disabled={!category.IsLeaf}
-        style={{
-          color: level === 0 ? '#333' : level === 1 ? '#555' : '#777',
-          fontWeight: level === 0 ? 'bold' : level === 1 ? '500' : 'normal',
-          paddingLeft: `${level * 16}px`,
-          fontSize: level === 0 ? '14px' : level === 1 ? '13px' : '12px'
-        }}
-      >
-        {category.TypeName}
-      </option>
-      {category.children?.length > 0 && renderCategoryOptions(category.children, level + 1)}
-    </>
-  ));
+const renderCategoryOptions = (categories) => {
+  if (!categories || !Array.isArray(categories)) return null;
+
+  const renderOptions = (items, level = 0) => {
+    return items.map(category => (
+      <React.Fragment key={category.ID}>
+        <option
+          value={category.ID}
+          disabled={!category.IsLeaf}
+          style={{
+            color: level === 0 ? '#333' : level === 1 ? '#555' : '#777',
+            fontWeight: level === 0 ? 'bold' : level === 1 ? '500' : 'normal',
+            paddingLeft: `${level * 16}px`,
+            fontSize: level === 0 ? '14px' : level === 1 ? '13px' : '12px'
+          }}
+        >
+          {category.TypeName}
+        </option>
+        {category.children?.length > 0 && renderOptions(category.children, level + 1)}
+      </React.Fragment>
+    ));
+  };
+
+  return renderOptions(categories);
 };
 
 import { useNavigate } from 'react-router-dom';
@@ -55,16 +61,25 @@ const CreateProduct = () => {
   const [pics, setPics] = useState([]);
   const [error, setError] = useState('');
   const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchCategories = async () => {
       try {
+        setLoading(true);
         const response = await ProductService.getCategories();
-        setCategories(response.data);
+        if (response?.data) {
+          setCategories(response.data);
+        } else {
+          setError('获取分类数据失败');
+        }
       } catch (err) {
-        setError('获取分类失败');
+        console.error('获取分类失败:', err);
+        setError('获取分类失败，请稍后重试');
+      } finally {
+        setLoading(false);
       }
     };
     fetchCategories();
@@ -222,10 +237,13 @@ const CreateProduct = () => {
               }));
             }}
             required
+            disabled={loading}
           >
             <option value="">请选择分类</option>
-            {renderCategoryOptions(categories)}
+            {!loading && renderCategoryOptions(categories)}
           </select>
+          {loading && <div style={{ marginTop: '8px', color: '#999' }}>加载分类中...</div>}
+          {error && <div style={{ marginTop: '8px', color: '#ff4d4f' }}>{error}</div>}
         </div>
 
         {selectedCategory?.attributes?.length > 0 && (
