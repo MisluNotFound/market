@@ -172,7 +172,8 @@ func GetProductList() func(c *gin.Context) {
 
 		req.PageReq.Fill()
 
-		resp, err := service.GetProductList(req)
+		userID, _ := GetContextUserID(c)
+		resp, err := service.GetProductList(req, userID)
 		if err != nil {
 			AbortWithError(c, err)
 			return

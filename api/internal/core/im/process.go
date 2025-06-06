@@ -13,19 +13,25 @@ const (
 	send = iota + 1
 	ack
 	fail
+	withdraw
 )
 
 func (c *Client) handleMessage(message *request.Message) {
 	log.Printf("read message from %s\n", c.userID)
 	switch message.Type {
 	case send:
+		service.SaveMessage(message)
 		err := sendMessage(message)
+		ackMessage(*message)
 		if err != nil {
 			handleFail(c, message)
 			return
 		}
 	case ack:
-		// ackMessage(message)
+
+	case withdraw:
+		message.ID = message.Content
+		sendMessage(message)
 	}
 }
 
@@ -56,13 +62,7 @@ func handleRetry(client *Client, msgID string) {
 	}()
 }
 
-// sendMessage handle message type 'send'(1). Save message to database.
 func sendMessage(message *request.Message) error {
-	err := service.SaveMessage(message)
-	if err != nil {
-		return err
-	}
-
 	toClient, online := getClient(message.To)
 	if !online {
 		// handle offline
@@ -90,7 +90,7 @@ func sendMessage(message *request.Message) error {
 }
 
 // ackMessage handle message type 'ack'(2). Remove message from pending queue.
-func ackMessage(message *request.Message) {
+func handleAckMessage(message *request.Message) {
 	toClient, online := getClient(message.To)
 	if !online {
 		// TODO handle offline message
@@ -111,4 +111,14 @@ func handleFail(client *Client, message *request.Message) {
 	failedMessage.Type = fail
 
 	client.send <- failedMessage
+}
+
+func ackMessage(message request.Message) {
+	fromClient, online := getClient(message.From)
+	if !online {
+		return
+	}
+
+	message.Type = ack
+	fromClient.send <- message
 }

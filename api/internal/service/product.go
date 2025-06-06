@@ -176,7 +176,7 @@ func CreateProduct(req *request.CreateProductReq) (response.CreateProductResp, e
 		return resp, exceptions.InternalServerError(err)
 	}
 
-	err = recommend.CreateItem(*product, categoriesString, attributesList)
+	err = recommend.CreateItem(*product, categoriesString, attributesList, true)
 	if err != nil {
 		return resp, exceptions.InternalServerError(err)
 	}
@@ -524,16 +524,27 @@ func GetUserProducts(req *request.GetUserProductsReq) (response.GetUserProductsR
 	return resp, nil
 }
 
-func GetProductList(req *request.GetProductListReq) (response.GetProductListResp, exceptions.APIError) {
+func GetProductList(req *request.GetProductListReq, userID string) (response.GetProductListResp, exceptions.APIError) {
 	var resp response.GetProductListResp
+	recommendations, err := recommend.GetRecommendations(userID, 100)
+	if err != nil {
+		return resp, exceptions.InternalServerError(err)
+	}
 
-	products, err := db.GetAll[models.Product](
-		db.Equal("is_published", true),
-		db.Page(req.Page, req.Size),
-		db.OrderBy("created_at", true),
-		db.Equal("is_selling", true),
-		db.Equal("is_sold", false),
-	)
+	var products []models.Product
+	if len(recommendations) == 0 {
+		products, err = db.GetAll[models.Product](
+			db.Equal("is_published", true),
+			db.Page(req.Page, req.Size),
+			db.OrderBy("created_at", true),
+			db.Equal("is_selling", true),
+			db.Equal("is_sold", false),
+		)
+	} else {
+		products, err = db.GetAll[models.Product](
+			db.InArray("id", recommendations),
+		)
+	}
 
 	if err != nil {
 		return resp, exceptions.InternalServerError(err)

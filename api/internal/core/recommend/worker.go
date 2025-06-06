@@ -145,7 +145,7 @@ func (w *RecommendationWorker) InsertFeedback(ctx context.Context, feedbacks []F
 	return nil
 }
 
-func CreateItem(product models.Product, categories []string, attributes []string) error {
+func CreateItem(product models.Product, categories []string, attributes []string, isHidden bool) error {
 	item := client.Item{
 		ItemId:     product.ID,
 		IsHidden:   false,
@@ -161,4 +161,8 @@ func CreateItem(product models.Product, categories []string, attributes []string
 	}
 
 	return nil
+}
+
+func GetRecommendations(userID string, size int) ([]string, error) {
+	return GlobalWorker.gorseClient.GetRecommend(context.Background(), userID, "", size)
 }

@@ -108,14 +108,24 @@
 }
 
 .message-container {
+  position: relative;
   display: flex;
-  margin-bottom: 12px;
-  align-items: flex-start;
-  gap: 8px;
+  margin-bottom: 16px;
+  padding: 0 16px;
 }
 
 .message-container.sent {
-  justify-content: flex-end;
+  flex-direction: row-reverse;
+}
+
+.message-container.sent .message {
+  margin-right: 12px;
+  margin-left: 0;
+}
+
+.message-container.received .message {
+  margin-left: 12px;
+  margin-right: 0;
 }
 
 .message-avatar {
@@ -547,29 +557,23 @@
 }
 
 /* 撤回按钮样式 */
-.message-container {
-  position: relative;
-  margin-top: 25px;
-}
-
 .recall-btn {
   position: absolute;
   right: 10px;
-  top: -20px;
-  background: #f0f0f0;
-  color: #666;
-  padding: 2px 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 4px 8px;
   border-radius: 4px;
   font-size: 12px;
   cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  z-index: 1;
+  z-index: 10;
+  transition: background-color 0.2s;
 }
 
 .recall-btn:hover {
-  background: #e0e0e0;
-  color: #333;
+  background-color: rgba(0, 0, 0, 0.8);
 }
 
 /* 右键菜单样式 */

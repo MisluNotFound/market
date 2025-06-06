@@ -82,17 +82,17 @@ func (s *Server) registerMockGroup(group *gin.RouterGroup) {
 func (s *Server) registerProductGroup(group *gin.RouterGroup) {
 	// TODO add auth
 	group.POST("/:userID", controllers.CreateProduct())
-	group.GET("/:userID/:productID", controllers.ScrapMiddleware(), controllers.GetProduct()) // collect
+	group.GET("/:userID/:productID", controllers.JWTMiddleware(false), controllers.ScrapMiddleware(), controllers.GetProduct()) // collect
 	group.PUT("/:userID/:productID", controllers.UpdateProduct())
 	group.PUT("/:userID/:productID/off-shelves", controllers.OffShelves())
 	group.PUT("/:userID/:productID/on-shelves", controllers.OnShelves())
 	group.PUT("/:userID/:productID/sold", controllers.SoldOut())
 	group.PUT("/:userID/:productID/selling", controllers.NotSold())
 	group.GET("/:userID", controllers.GetUserProducts())
-	group.GET("/products", controllers.GetProductList())
+	group.GET("/products", controllers.JWTMiddleware(false), controllers.GetProductList())
 	group.GET("/category", controllers.GetAllCategory())
 	group.PUT("/:userID/:productID/price", controllers.UpdateProductPrice())
-	group.POST("/:userID/:productID/like", controllers.ScrapMiddleware(), controllers.LikeProduct()) // collect
+	group.POST("/:userID/:productID/like", controllers.JWTMiddleware(true), controllers.ScrapMiddleware(), controllers.LikeProduct()) // collect
 	group.PUT("/:userID/:productID/dislike", controllers.DislikeProduct())
 	group.GET("/:userID/favorites", controllers.GetUserLikes())
 	group.GET("/tags", controllers.GetInterestTags())

@@ -69,19 +69,24 @@ func SaveMessage(raw *request.Message) error {
 			db.Equal("from_user_id", message.FromUserID),
 		)
 
-		// TODO 更新接收方的对话状态
-
 		if err != nil {
 			return err
-		}
-
-		if !conversation.MarkDeleted {
-			return nil
 		}
 
 		conversation.MarkDeleted = false
 		conversation.LastMessageTime = message.Timestamp
 		conversation.LastMessageContent = message.Content
+
+		toUsersConversation, err := db.GetOne[models.Conversation](
+			db.Equal("to_user_id", message.FromUserID),
+			db.Equal("from_user_id", message.ToUserID),
+		)
+		toUsersConversation.MarkDeleted = false
+		toUsersConversation.LastMessageTime = message.Timestamp
+		toUsersConversation.LastMessageContent = message.Content
+		if err := db.Update(&toUsersConversation, tx); err != nil {
+			return err
+		}
 		return db.Update(&conversation, tx)
 	})
 }
@@ -300,6 +305,21 @@ func GetConversationList(req *request.GetConversationListReq) (response.GetConve
 			return nil, exceptions.InternalServerError(err)
 		}
 
+		lastMessage, err := db.GetOne[models.Message](
+			db.Equal("conversation_id", getConversationID(conversation.FromUserID, conversation.ToUserID)),
+			db.OrderBy("id", true),
+		)
+		if err != nil {
+			return nil, exceptions.InternalServerError(err)
+		}
+
+		conversation.LastReadMessageID = lastMessage.ID
+
+		err = db.Update(conversation)
+		if err != nil {
+			return nil, exceptions.InternalServerError(err)
+		}
+
 		resp = append(resp, response.ConversationWithUnReadCount{
 			User:         user,
 			UnreadCount:  int(unreadCount),
@@ -317,7 +337,6 @@ func GetMessages(req *request.GetMessagesReq) (response.GetMessagesResp, excepti
 
 	messages, err := db.GetAll[models.Message](
 		db.Equal("conversation_id", getConversationID(req.FromUserID, req.ToUserID)),
-		db.Page(req.Page, req.Size),
 		db.OrderBy("id", true),
 	)
 

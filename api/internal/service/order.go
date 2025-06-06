@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/mislu/market-api/internal/core/mq/rabbit"
 	"github.com/mislu/market-api/internal/core/payment"
 	"github.com/mislu/market-api/internal/core/payment/types"
 	"github.com/mislu/market-api/internal/db"
@@ -35,8 +36,6 @@ var (
 func PurchaseProduct(req *request.PurchaseProductReq) (response.PurchaseProductResp, exceptions.APIError) {
 	var resp response.PurchaseProductResp
 	// create an order
-
-	// TODO check if the product is available in cache
 
 	product, err := db.GetOne[*models.Product](
 		db.Equal("id", req.ProductID),
@@ -86,11 +85,14 @@ func PurchaseProduct(req *request.PurchaseProductReq) (response.PurchaseProductR
 		ShipAmount:  req.ShipAmount,
 	}
 
-	// TODO use rabbit mq dead queue to delete the order if not paid in 15 minutes
 	if err := db.Create(order); err != nil {
 		return resp, exceptions.InternalServerError(err)
 	}
 
+	err = rabbit.SendOrder(*order)
+	if err != nil {
+		return resp, exceptions.InternalServerError(err)
+	}
 	product.IsSold = true
 	if err := db.Update(product); err != nil {
 		return resp, exceptions.InternalServerError(err)

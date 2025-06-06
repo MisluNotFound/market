@@ -31,7 +31,17 @@ const Home = () => {
         if (!isActive) return;
 
         const productList = response?.data?.products || [];
-        setProducts(prev => (page === 1 ? productList : [...prev, ...productList]));
+
+        setProducts(prev => {
+          if (page === 1) return productList;
+          // 合并所有商品，确保不重复
+          const allProducts = [...prev, ...productList];
+          const uniqueProducts = Array.from(
+            new Map(allProducts.map(item => [item.id, item])).values()
+          );
+          return uniqueProducts;
+        });
+
         setHasMore(productList.length > 0);
       } catch (error) {
         if (!isActive) return;
@@ -59,9 +69,8 @@ const Home = () => {
     <div className="home-container">
       <Header onSearch={handleSearch} />
       <div className="product-grid">
-        {products.map((product, index) => (
-          console.log(product),
-          <ProductCard key={`${product.id}-${index}`} product={product} />
+        {products.map((product) => (
+          <ProductCard key={product.id} product={product} />
         ))}
       </div>
       {loading && <div className="loading">加载中...</div>}

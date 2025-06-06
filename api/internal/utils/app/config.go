@@ -47,6 +47,10 @@ type Config struct {
 			} `mapstructure:"memory"`
 		} `mapstructure:"mq"`
 	} `mapstructure:"gorse"`
+
+	Rabbit struct {
+		Url string `mapstructure:"url"`
+	}
 }
 
 var config *Config

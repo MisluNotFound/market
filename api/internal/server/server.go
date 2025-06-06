@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/mislu/market-api/internal/core/im"
+	"github.com/mislu/market-api/internal/core/mq/rabbit"
 	"github.com/mislu/market-api/internal/core/payment"
 	"github.com/mislu/market-api/internal/core/recommend"
 	resourcemanager "github.com/mislu/market-api/internal/core/resource_manager"
@@ -133,6 +134,11 @@ func Run() {
 	im.Init()
 	// init resource manager
 	resourcemanager.InitGlobalResourceManager()
+
+	err := rabbit.InitGlobalRabbitMQ()
+	if err != nil {
+		panic(err)
+	}
 
 	recommend.InitGlobalWorker()
 	payment.InitPaymentService()

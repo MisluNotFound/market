@@ -72,7 +72,6 @@ class IMService {
     }
 
     const wsUrl = `ws://localhost:3300/api/im/ws?userID=${this.userId}`;
-    console.log('Connecting to WebSocket:', wsUrl);
 
     this.ws = new WebSocket(wsUrl);
 
@@ -100,7 +99,7 @@ class IMService {
     };
   }
 
-  sendMessage(content: string, to: string, mediaType = 'text'): string {
+  sendMessage(content: string, to: string, mediaType = 'text', type = 1): string {
     const tempID = crypto.randomUUID();
     const message: Message = {
       tempID,
@@ -108,25 +107,25 @@ class IMService {
       to,
       content,
       mediaType,
-      type: 1
+      type
     };
 
-    this.pendingMessages.set(tempID, message);
+    // this.pendingMessages.set(tempID, message);
     this.ws?.send(JSON.stringify(message));
     return tempID;
   }
 
   private handleMessage(message: Message): void {
     switch (message.type) {
-      case 2: // ACK
-        this.pendingMessages.delete(message.tempID!);
-        break;
-      case 3: // FAIL
-        const pendingMsg = this.pendingMessages.get(message.tempID!);
-        if (pendingMsg) {
-          this.ws?.send(JSON.stringify(pendingMsg));
-        }
-        break;
+      // case 2: // ACK
+      //   // this.pendingMessages.delete(message.tempID!);
+      //   break;
+      // case 3: // FAIL
+      //   const pendingMsg = this.pendingMessages.get(message.tempID!);
+      //   if (pendingMsg) {
+      //     this.ws?.send(JSON.stringify(pendingMsg));
+      //   }
+      //   break;
       default:
         this.notifyHandlers(message);
     }

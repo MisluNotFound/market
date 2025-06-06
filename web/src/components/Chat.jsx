@@ -4,7 +4,7 @@ import AuthService from '../services/auth';
 import ProductService from '../services/product';
 import '../styles/chat.css';
 
-export default function Chat({ userId }) {
+export default function Chat() {
   const location = useLocation();
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -14,7 +14,6 @@ export default function Chat({ userId }) {
   const [input, setInput] = useState('');
   const [currentProduct, setCurrentProduct] = useState(null);
   const imService = useRef(AuthService.getIMService());
-
   const sortMessages = useCallback((messages) => {
     const sorted = [...messages].sort((a, b) => {
       const timeA = new Date(a.time).getTime();
@@ -25,6 +24,9 @@ export default function Chat({ userId }) {
     console.log('排序后的消息:', sorted);
     return sorted;
   }, []);
+
+  const userId = localStorage.getItem('userId');
+
 
   const parseProductMessage = (content) => {
     const parts = content.split(',');
@@ -71,6 +73,44 @@ export default function Chat({ userId }) {
 
     const handleMessage = (message) => {
       console.log('处理新消息:', message);
+      console.log(message);
+
+      // 处理消息确认
+      if (message.type === 2) {
+        const conversationId = message.to;
+        setConversationMessages(prev => {
+          const newMap = new Map(prev);
+          console.log("map", newMap);
+          const currentMessages = newMap.get(conversationId) || [];
+          const updatedMessages = currentMessages.map(msg => {
+            if (msg.tempID === message.tempID) {
+              console.log('找到匹配的临时消息:', msg);
+              return { ...msg, id: message.id };
+            }
+            return msg;
+          });
+          console.log("updated", updatedMessages);
+          newMap.set(conversationId, updatedMessages);
+          return newMap;
+        });
+        return;
+      }
+
+      // 处理撤回消息
+      if (message.type === 4) {
+        const conversationId = message.from;
+        setConversationMessages(prev => {
+          const newMap = new Map(prev);
+          const currentMessages = newMap.get(conversationId) || [];
+          const updatedMessages = currentMessages.filter(msg => msg.id !== message.id);
+          console.log(currentMessages);
+          newMap.set(conversationId, updatedMessages);
+          return newMap;
+        });
+        return;
+      }
+
+      // 对于其他类型的消息，使用from字段来确定会话ID
       const conversationId = message.from === userId ? message.to : message.from;
 
       // 自动激活或创建对话
@@ -107,17 +147,21 @@ export default function Chat({ userId }) {
           const productInfo = parseProductMessage(message.content);
           newMessage = {
             id: message.id || message.tempID || Date.now().toString(),
-            from: message.from_user_id || message.from,
+            tempID: message.tempID,
+            from: message.from_user_id,
             content: productInfo,
-            media_type: 'link',
-            time: message.timestamp || new Date().toISOString()
+            mediaType: 'link',
+            time: message.timestamp || new Date().toISOString(),
+            type: message.type || 1
           };
         } else {
           newMessage = {
             id: message.id || message.tempID || Date.now().toString(),
-            from: message.from_user_id || message.from,
+            tempID: message.tempID,
+            from: message.from_user_id,
             content: message.content,
-            time: message.timestamp || new Date().toISOString()
+            time: message.timestamp || new Date().toISOString(),
+            type: message.type || 1
           };
         }
 
@@ -139,81 +183,82 @@ export default function Chat({ userId }) {
 
   const handleSend = () => {
     if (input.trim() && activeConversation) {
-      const newMessage = {
-        id: Date.now().toString(),
-        from: userId,
-        content: input,
-        time: new Date().toISOString()
-      };
+      // 使用 IMService 发送消息并获取 tempID
+      const tempID = imService.current?.sendMessage(input, activeConversation.id);
 
-      setConversationMessages(prev => {
-        const newMap = new Map(prev);
-        const currentMessages = newMap.get(activeConversation.id) || [];
-        newMap.set(activeConversation.id, sortMessages([...currentMessages, newMessage]));
-        return newMap;
-      });
+      if (tempID) {
+        const newMessage = {
+          tempID: tempID,
+          from: userId,
+          content: input,
+          time: new Date().toISOString()
+        };
 
-      imService.current?.sendMessage(input, activeConversation.id);
-      setInput('');
+        setConversationMessages(prev => {
+          const newMap = new Map(prev);
+          const currentMessages = newMap.get(activeConversation.id) || [];
+          newMap.set(activeConversation.id, sortMessages([...currentMessages, newMessage]));
+          return newMap;
+        });
+
+        setInput('');
+      }
     }
   };
 
   const selectConversation = async (conversation) => {
-    console.log(conversation.username, conversation.avatar)
+    console.log("select conversation", conversation)
     setActiveConversation({
       id: conversation.id,
       name: conversation.username,
       avatar: conversation.avatar,
-      productId: conversation.currentProductID
     });
-    console.log(conversation)
-    // 获取关联商品信息
-    if (conversation.currentProductID) {
-      try {
-        console.log('获取商品详情参数:', {
-          userId: conversation.fromUserID,
-          productId: conversation.currentProductID
-        });
-        const product = await ProductService.getProductDetail(
-          conversation.fromUserID,
-          conversation.currentProductID
-        );
-        console.log('商品详情响应:', product.data.product);
-        setCurrentProduct(product.data.product);
-      } catch (error) {
-        console.error('获取商品信息失败:', error);
-        setCurrentProduct(null);
-      }
-    } else {
-      setCurrentProduct(null);
-    }
+
     try {
-      // 获取对话消息时，fromUserID应该是对方用户ID
-      console.log(conversation)
-      const otherUserId = conversation.fromUserID
       const msgResponse = await imService.current.getConversationMessages(
-        conversation.fromUserID,  // fromUserID应该是对方用户
+        conversation.fromUserID,
         conversation.toUserID
       );
 
       console.log('获取消息响应:', msgResponse.data.Messages);
-      // TODO 修改字段为小驼峰
       const sortedMessages = sortMessages(
         (msgResponse?.data?.Messages || []).map(msg => ({
           id: msg.id,
+          tempID: msg.tempID,
           from: msg.from_user_id,
           content: msg.content,
           time: msg.timestamp,
-          mediaType: msg.media_type
+          mediaType: msg.media_type,
+          type: msg.type || 1,
+          to: msg.to_user_id
         }))
       );
       setConversationMessages(prev => {
         const newMap = new Map(prev);
         newMap.set(conversation.id, sortedMessages);
+        console.log(newMap)
         return newMap;
       });
     } catch (error) {
       console.error('获取消息失败:', error);
+    }
+  };
+
+  const handleRecall = (msg) => {
+    console.log(msg)
+    if (activeConversation) {
+      const messageId = msg.id
+      // 发送撤回消息，type为4，content为要撤回的消息ID
+      imService.current?.sendMessage(messageId, activeConversation.id, 'text', 4);
+
+      // 从本地消息列表中移除被撤回的消息
+      setConversationMessages(prev => {
+        const newMap = new Map(prev);
+        const currentMessages = newMap.get(activeConversation.id) || [];
+        const updatedMessages = currentMessages.filter(msg => msg.id !== messageId);
+        newMap.set(activeConversation.id, updatedMessages);
+        return newMap;
+      });
     }
   };
 
@@ -283,7 +328,12 @@ export default function Chat({ userId }) {
                   }}
                 >
                   {msg.from === userId && (
-                    <div id={`recall-${index}`} className="recall-btn" style={{ display: 'none' }}>
+                    <div
+                      id={`recall-${index}`}
+                      className="recall-btn"
+                      style={{ display: 'none' }}
+                      onClick={() => handleRecall(msg)}
+                    >
                       撤回
                     </div>
                   )}
@@ -319,10 +369,10 @@ export default function Chat({ userId }) {
             </div>
 
             <div className="chat-input">
-              <div className="chat-actions">
+              {/* <div className="chat-actions">
                 <button className="chat-action-btn">发送商品</button>
                 <button className="chat-action-btn">发送订单</button>
-              </div>
+              </div> */}
               <div className="input-container">
                 <textarea
                   value={input}

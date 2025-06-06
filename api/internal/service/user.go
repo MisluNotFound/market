@@ -1,9 +1,13 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"regexp"
+	"time"
 
+	"github.com/google/uuid"
+	"github.com/mislu/market-api/internal/core/recommend"
 	resourcemanager "github.com/mislu/market-api/internal/core/resource_manager"
 	"github.com/mislu/market-api/internal/db"
 	"github.com/mislu/market-api/internal/types/exceptions"
@@ -260,14 +264,49 @@ func GetUserInfo(req *request.GetUserInfoReq) (response.GetUserInfoResp, excepti
 func SelectInterestTags(req *request.SelectInterestTagsReq) exceptions.APIError {
 	userTags := make([]models.UserInterests, 0, len(req.Tags))
 
+	feedbacks := make([]recommend.Feedback, 0, len(req.Tags))
 	for _, tag := range req.Tags {
 		userTags = append(userTags, models.UserInterests{
 			UserID:        req.UserID,
 			InterestTagID: tag,
 		})
+
+		t, err := db.GetOne[models.InterestTag](
+			db.Equal("id", tag),
+		)
+		if err != nil {
+			return exceptions.InternalServerError(err)
+		}
+
+		category, err := db.GetOne[models.Category](
+			db.Equal("id", t.CategoryID),
+		)
+		if err != nil {
+			continue
+		}
+		fakeProduct := models.Product{
+			Model: models.Model{
+				ID: uuid.New().String(),
+			},
+		}
+
+		err = recommend.CreateItem(fakeProduct, []string{category.TypeName}, nil, true)
+		if err == nil {
+			feedbacks = append(feedbacks, recommend.Feedback{
+				UserId:       req.UserID,
+				ItemId:       fakeProduct.ID,
+				FeedbackType: "view",
+				Timestamp:    time.Now().Unix(),
+			})
+		}
 	}
 
-	err := db.WithTransaction(func(tx *gorm.DB) error {
+	err := recommend.GlobalWorker.InsertFeedback(context.Background(), feedbacks)
+	if err != nil {
+		return nil
+	}
+
+	err = db.WithTransaction(func(tx *gorm.DB) error {
 		if len(userTags) == 0 {
 			return nil
 		}
@@ -280,6 +319,9 @@ func SelectInterestTags(req *request.SelectInterestTagsReq) exceptions.APIError 
 		user, err := db.GetOne[models.User](
 			db.Equal("id", req.UserID),
 		)
+		if err != nil {
+			return err
+		}
 		user.SelectedTags = true
 		err = db.Update(&user)
 		return err
