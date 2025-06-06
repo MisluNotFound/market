@@ -17,6 +17,7 @@ import Chat from './components/Chat';
 import SearchResults from './pages/SearchResults';
 import InterestTags from './pages/InterestTags';
 import AuthService from './services/auth';
+import UserProfile from './pages/UserProfile';
 
 const protectedLoader = async () => {
   const user = await AuthService.getCurrentUser();
@@ -90,6 +91,10 @@ const router = createBrowserRouter([
         path: '/chat',
         element: <Chat userId="current-user-id" />,
         loader: protectedLoader
+      },
+      {
+        path: '/user/:userId',
+        element: <UserProfile />
       },
     ],
   },

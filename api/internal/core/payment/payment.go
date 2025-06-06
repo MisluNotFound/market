@@ -28,3 +28,11 @@ func InitPaymentService() error {
 	alipayService = service
 	return nil
 }
+
+func GetGlobalPaymentService() types.PaymentService {
+	if alipayService == nil {
+		InitPaymentService()
+	}
+
+	return alipayService
+}

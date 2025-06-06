@@ -34,3 +34,7 @@ type GetUnCommentOrderResp struct {
 type PurchaseProductResp struct {
 	OrderID string `json:"orderID"`
 }
+
+type GetOrderStatusResp struct {
+	Status int `json:"status"`
+}

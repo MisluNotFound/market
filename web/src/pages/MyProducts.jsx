@@ -33,7 +33,6 @@ const MyProducts = () => {
       if (!isActive) return;
 
       const newProducts = Array.isArray(data.data?.products) ? data.data.products : [];
-      console.log(newProducts)
       if (newProducts.length > 0) {
         setProducts(prev =>
           isLoadMore
@@ -43,7 +42,8 @@ const MyProducts = () => {
       }
       setPageInfo(prev => ({
         ...prev,
-        total: data.total || 0
+        total: data.data.total || 0,
+        page: data.data.page + 1
       }));
     } catch (error) {
       if (!isActive) return;
@@ -62,7 +62,6 @@ const MyProducts = () => {
 
   useEffect(() => {
     let isActive = true;
-    // 只在初始加载且没有数据时请求
     if (products.length === 0) {
       fetchProducts();
     }

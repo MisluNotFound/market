@@ -74,20 +74,53 @@
 .product-header {
   display: flex;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
-.user-avatar {
-  width: 32px;
-  height: 32px;
+.product-card .user-avatar {
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  margin-right: 8px;
+  margin-right: 6px;
   object-fit: cover;
 }
 
-.username {
-  font-size: 14px;
+.product-card .user-info {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.product-card .username {
+  font-size: 18px;
   color: #666;
+  font-weight: normal;
+}
+
+.product-card .reputation-tag {
+  font-size: 12px;
+  padding: 0 4px;
+  border-radius: 8px;
+  display: inline-block;
+  line-height: 1.2;
+}
+
+.reputation-tag.excellent {
+  color: #52c41a;
+  background: #f6ffed;
+  border: 1px solid #b7eb8f;
+}
+
+.reputation-tag.good {
+  color: #1890ff;
+  background: #e6f7ff;
+  border: 1px solid #91d5ff;
+}
+
+.reputation-tag.poor {
+  color: #ff4d4f;
+  background: #fff1f0;
+  border: 1px solid #ffa39e;
 }
 
 .product-price {

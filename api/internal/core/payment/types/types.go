@@ -5,6 +5,15 @@ import (
 	"net/url"
 )
 
+type TradeStatus string
+
+const (
+	TradeStatusWaitBuyerPay TradeStatus = "WAIT_BUYER_PAY" //（交易创建，等待买家付款）
+	TradeStatusClosed       TradeStatus = "TRADE_CLOSED"   //（未付款交易超时关闭，或支付完成后全额退款）
+	TradeStatusSuccess      TradeStatus = "TRADE_SUCCESS"  //（交易支付成功）
+	TradeStatusFinished     TradeStatus = "TRADE_FINISHED" //（交易结束，不可退款）
+)
+
 // PaymentType 支付类型枚举
 type PaymentType string
 
@@ -76,7 +85,7 @@ type QueryTradeResponse struct {
 	OutTradeNo     string
 	BuyerLogonID   string
 	BuyerOpenID    string
-	TradeStatus    string
+	TradeStatus    TradeStatus
 	TotalAmount    string
 	TransCurrency  string
 	SettleCurrency string

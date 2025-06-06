@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Select } from 'antd';
 import ProductService from '../services/product';
 import AuthService from '../services/auth';
+import AddressService from '../services/address';
 import '../styles/create-product.css';
 
 // 递归查找分类
@@ -48,7 +50,8 @@ const EditProduct = () => {
     shipPrice: '',
     canSelfPickup: false,
     categoryId: '',
-    attributes: {}
+    attributes: {},
+    addressId: ''
   });
   const [originalAttributes, setOriginalAttributes] = useState({});
   const [pics, setPics] = useState([]);
@@ -57,6 +60,7 @@ const EditProduct = () => {
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [existingPics, setExistingPics] = useState([]);
+  const [addresses, setAddresses] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -76,8 +80,30 @@ const EditProduct = () => {
         const productRes = await ProductService.getProductDetail(userId, productId);
         const product = productRes.data;
 
+        // 获取地址列表
+        const addressResponse = await AddressService.getAddresses();
+        if (addressResponse?.data?.code === 200) {
+          const addressList = addressResponse.data.data.addresses || [];
+          setAddresses(addressList);
+
+          // 根据商品的location信息匹配地址
+          if (product.product.location) {
+            const matchedAddress = addressList.find(addr =>
+              addr.addressID == product.product.location
+            );
+
+            if (matchedAddress) {
+              setFormData(prev => ({
+                ...prev,
+                addressId: matchedAddress.addressID
+              }));
+            }
+          }
+        }
+
         setCategories(categoriesRes.data);
-        setFormData({
+        setFormData(prev => ({
+          ...prev,
           originalPrice: product.product.originalPrice || '',
           price: product.product.price,
           describe: product.product.describe,
@@ -86,11 +112,9 @@ const EditProduct = () => {
           canSelfPickup: product.product.canSelfPickup,
           categoryId: product.categories[0],
           attributes: product.attributes || {}
-        });
+        }));
         setOriginalAttributes(product.attributes || {});
-        console.log(product)
         const category = findCategoryById(categoriesRes.data, product.categories[0]);
-        console.log(category)
         setSelectedCategory(category);
 
         setExistingPics(product.product.avatar.split(',').filter(url => url.trim()));
@@ -189,11 +213,15 @@ const EditProduct = () => {
     e.preventDefault();
     setError('');
 
-    // 检查是否登录
     const userId = localStorage.getItem('userId');
     if (!userId) {
       setError('请先登录');
       navigate('/login');
+      return;
+    }
+
+    if (!formData.addressId) {
+      setError('请选择收货地址');
       return;
     }
 
@@ -202,10 +230,12 @@ const EditProduct = () => {
       data.append('originalPrice', formData.originalPrice);
       data.append('price', formData.price);
       data.append('describe', formData.describe);
-      data.append('shipMethod', formData.shipMethod);
-      data.append('shipPrice', formData.shipPrice);
+      data.append('shipMethod', formData.shipMethod || 'included');
+      data.append('shipPrice', formData.shipMethod === 'fixed' ? formData.shipPrice : '0');
       data.append('canSelfPickup', formData.canSelfPickup);
-      // 转换属性格式为map[uint]string
+      data.append('categories', parseInt(formData.categoryId));
+      data.append('addressId', formData.addressId);
+
       const attributesMap = {};
       const hasAttributeChanges = Object.keys(formData.attributes).length > 0;
       const finalAttributes = hasAttributeChanges
@@ -229,7 +259,15 @@ const EditProduct = () => {
 
       const response = await ProductService.updateProduct(data, userId, productId);
       if (response.code === 200) {
-        navigate(`/product/${productId}`, { state: { message: '商品修改成功' } });
+        navigate(`/product/${productId}`, {
+          state: {
+            product: {
+              user: {
+                id: userId
+              }
+            }
+          }
+        });
       } else {
         setError(response.msg || '修改商品失败');
       }
@@ -245,6 +283,23 @@ const EditProduct = () => {
       {error && <div className="error-message">{error}</div>}
 
       <form onSubmit={handleSubmit}>
+        <div className="form-row">
+          <label className="form-label">收货地址</label>
+          <Select
+            className="form-control"
+            value={formData.addressId}
+            onChange={(value) => setFormData(prev => ({ ...prev, addressId: value }))}
+            placeholder="请选择收货地址"
+            required
+          >
+            {addresses.map(address => (
+              <Select.Option key={address.addressID} value={address.addressID}>
+                {`${address.receiver} ${address.phone} - ${address.province}${address.city}${address.district} ${address.street}${address.streetNumber} ${address.detail}`}
+              </Select.Option>
+            ))}
+          </Select>
+        </div>
+
         <div className="form-row">
           <label className="form-label">商品分类</label>
           <select

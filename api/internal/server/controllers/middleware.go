@@ -16,10 +16,10 @@ const (
 	_ctx_user_id = "userID"
 )
 
-func JWTMiddleware() gin.HandlerFunc {
+func JWTMiddleware(needAuth bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenHeader := c.Request.Header.Get("Authorization")
-		if len(tokenHeader) == 0 {
+		if len(tokenHeader) == 0 && needAuth {
 			AbortWithError(c, exceptions.NewGenericError(http.StatusUnauthorized, "No token provided", errors.New("no token provided")))
 			c.Abort()
 			return

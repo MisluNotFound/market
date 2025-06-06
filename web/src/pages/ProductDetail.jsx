@@ -1,9 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import ProductService from '../services/product';
 import AuthService from '../services/auth';
 import OrderService from '../services/order';
 import '../styles/product-detail.css';
+
+const getReputationInfo = (reputation) => {
+  if (reputation > 80) {
+    return { text: '信誉极好', color: '#52c41a' };
+  } else if (reputation >= 60) {
+    return { text: '信誉良好', color: '#1890ff' };
+  } else {
+    return { text: '信誉较差', color: '#ff4d4f' };
+  }
+};
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -13,22 +23,24 @@ const ProductDetail = () => {
   const [loading, setLoading] = React.useState(true);
   const [currentUser, setCurrentUser] = React.useState(null);
   const [error, setError] = React.useState(null);
+  const [showCreditDetail, setShowCreditDetail] = useState(false);
 
   React.useEffect(() => {
     const fetchData = async () => {
       try {
         const user = await AuthService.getCurrentUser();
         setCurrentUser(user);
-        console.log(location.state.product)
-        // // 如果location.state中有商品数据，直接使用
-        // if (location.state?.product) {
-        //   setProduct(location.state.product);
-        //   setLoading(false);
-        //   return;
-        // }
 
-        // 否则调用接口获取商品详情
-        const response = await ProductService.getProductDetail(location.state.product.user.id, id);
+        let sellerId;
+        if (location.state?.product?.user?.id) {
+          sellerId = location.state.product.user.id;
+        } else {
+          // 如果没有 state 中的卖家信息，先获取当前用户 ID
+          sellerId = user.id;
+        }
+
+        // 获取商品详情
+        const response = await ProductService.getProductDetail(sellerId, id);
         setProduct(response.data);
       } catch (error) {
         console.error('获取商品详情失败:', error);
@@ -41,18 +53,69 @@ const ProductDetail = () => {
     fetchData();
   }, [id, location.state]);
 
+  // 获取信誉信息
+  const credit = product.credit;
+  const reputationInfo = credit ? getReputationInfo(credit.reputation) : null;
+
   if (loading) return <div className="loading">加载中...</div>;
   if (error) return <div className="error">{error}</div>;
   if (!product) return <div className="error">商品不存在</div>;
   return (
     <div className="product-detail-container">
       <div className="user-section">
-        <div className="seller-info">
+        <div
+          className="seller-info"
+          style={{ position: 'relative', display: 'flex', alignItems: 'center' }}
+          onMouseEnter={() => setShowCreditDetail(true)}
+          onMouseLeave={() => setShowCreditDetail(false)}
+        >
           <img
             src={product.user?.avatar || '/placeholder-user.png'}
             className="seller-avatar"
+            style={{ cursor: 'pointer' }}
+            onClick={() => navigate(`/user/${product.user?.id}`)}
+            alt={product.user?.username}
           />
           <span className="seller-name">{product.user?.username || '未知用户'}</span>
+          {reputationInfo && credit.reputation > 0 && (
+            <span
+              style={{
+                marginLeft: 12,
+                color: reputationInfo.color,
+                fontWeight: 500,
+                fontSize: 14,
+                border: `1px solid ${reputationInfo.color}`,
+                borderRadius: 4,
+                padding: '2px 8px',
+                background: '#fafafa',
+                cursor: 'pointer'
+              }}
+            >
+              {reputationInfo.text}
+            </span>
+          )}
+          {/* 信誉详细信息浮层 */}
+          {showCreditDetail && credit.reputation > 0 && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 40,
+                left: 0,
+                background: '#fff',
+                border: '1px solid #eee',
+                borderRadius: 6,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                padding: 16,
+                zIndex: 10,
+                minWidth: 180
+              }}
+            >
+              <div>总评价数：{credit.totalComment}</div>
+              <div>好评数：{credit.positiveComment}</div>
+              <div>差评数：{credit.negativeComment}</div>
+              <div>信誉值：{credit.reputation}</div>
+            </div>
+          )}
         </div>
       </div>
 

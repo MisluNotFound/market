@@ -16,7 +16,7 @@ type AttributeFilter struct {
 
 type SortOption struct {
 	Field string `json:"field"`
-	Decs  bool   `json:"decs"`
+	Desc  bool   `json:"desc"`
 }
 
 type GetSearchHistoryReq struct {

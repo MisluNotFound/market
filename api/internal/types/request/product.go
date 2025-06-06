@@ -20,7 +20,7 @@ type CreateProductReq struct {
 	CanSelfPickup bool                    `json:"canSelfPickup" form:"canSelfPickup"`
 	Condition     string                  `json:"condition" form:"condition" binding:"required,oneof=new excellent good used"`
 	UsedTime      string                  `form:"usedTime"`
-	// TODO location
+	AddressID     string                  `json:"addressID" form:"addressId" binding:"required"`
 
 	Categories     []uint `form:"categories" binding:"required"`
 	AttributesJson string `form:"attributes" binding:"required"`
@@ -55,9 +55,10 @@ type UpdateProductReq struct {
 	DeletedPics   []string                `form:"deletedPics"`
 	AddedPics     []*multipart.FileHeader `form:"addedPics"`
 	ShipMethod    string                  `form:"shipMethod" binding:"required,oneof=included fixed"`
-	ShipPrice     int                     `form:"shipPrice" binding:"required,gt=0"`
+	ShipPrice     int                     `form:"shipPrice"`
 	CanSelfPickup bool                    `form:"canSelfPickup"`
-	// TODO location
+	AddressID     string                  `json:"addressID" form:"addressId" binding:"required"`
+
 	Categories     []uint `form:"categories" binding:"required"`
 	AttributesJson string `form:"attributes" binding:"required"`
 }

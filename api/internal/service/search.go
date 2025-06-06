@@ -15,29 +15,37 @@ func SearchProduct(req *request.SearchProductReq) (response.SearchProductResp, e
 	var resp response.SearchProductResp
 
 	if len(req.UserID) > 0 {
-		searchHistory := models.SearchHistory{
-			UserID:     req.UserID,
-			Keyword:    req.Keyword,
-			SearchTime: time.Now().Unix(),
+		history, _ := db.GetOne[models.SearchHistory](
+			db.Equal("user_id", req.UserID),
+			db.Equal("keyword", req.Keyword),
+		)
+
+		if len(history.Keyword) > 0 {
+			// 之前搜索过
+			history.SearchTime = time.Now().Unix()
+			db.Update(&history)
+		} else {
+			searchHistory := models.SearchHistory{
+				UserID:     req.UserID,
+				Keyword:    req.Keyword,
+				SearchTime: time.Now().Unix(),
+			}
+			db.Create(&searchHistory)
 		}
-		db.Create(&searchHistory)
 	}
 
 	query := buildSearchReq(req)
 
-	// 从es获取商品搜索结果
 	esResp, err := es.Search("m-market", query)
 	if err != nil {
 		return resp, exceptions.InternalServerError(err)
 	}
 
-	// TODO 目前需要回数据库查询，后期不依赖于数据库，但是需要保证一致性
 	productIDs := make([]string, 0, len(esResp))
 	for _, product := range esResp {
 		productIDs = append(productIDs, product["id"].(string))
 	}
 
-	// TODO 处理排序并应用到es 比如将按距离或者价格转换为es条件
 	products, err := db.GetAll[models.Product](
 		db.InArray("id", productIDs),
 	)
@@ -45,8 +53,19 @@ func SearchProduct(req *request.SearchProductReq) (response.SearchProductResp, e
 		return resp, exceptions.InternalServerError(err)
 	}
 
-	userIDs := make([]string, 0, len(products))
+	productMap := make(map[string]models.Product, len(products))
 	for _, product := range products {
+		productMap[product.ID] = product
+	}
+	orderedProducts := make([]models.Product, 0, len(productIDs))
+	for _, id := range productIDs {
+		if product, exists := productMap[id]; exists {
+			orderedProducts = append(orderedProducts, product)
+		}
+	}
+
+	userIDs := make([]string, 0, len(orderedProducts))
+	for _, product := range orderedProducts {
 		userIDs = append(userIDs, product.UserID)
 	}
 
@@ -58,13 +77,18 @@ func SearchProduct(req *request.SearchProductReq) (response.SearchProductResp, e
 		return resp, exceptions.InternalServerError(err)
 	}
 
-	userProduct := make([]response.UserProduct, 0, len(products))
-	for _, product := range products {
+	userProduct := make([]response.UserProduct, 0, len(orderedProducts))
+	for _, product := range orderedProducts {
 		for _, user := range users {
 			if user.ID == product.UserID {
+				address, err := getProductAddress(product.Location)
+				if err != nil {
+					continue
+				}
 				userProduct = append(userProduct, response.UserProduct{
 					User:    user,
 					Product: product,
+					Address: address.Address,
 				})
 			}
 		}
@@ -105,19 +129,19 @@ func buildSearchReq(req *request.SearchProductReq) map[string]interface{} {
 		},
 	}
 
-	// if req.Sort.Field != "" {
-	// 	order := "asc"
-	// 	if req.Sort.Decs {
-	// 		order = "desc"
-	// 	}
-	// 	query["sort"] = []map[string]interface{}{
-	// 		{
-	// 			req.Sort.Field: map[string]interface{}{
-	// 				"order": order,
-	// 			},
-	// 		},
-	// 	}
-	// }
+	if req.Sort.Field != "" {
+		order := "asc"
+		if req.Sort.Desc {
+			order = "desc"
+		}
+		query["sort"] = []map[string]interface{}{
+			{
+				req.Sort.Field: map[string]interface{}{
+					"order": order,
+				},
+			},
+		}
+	}
 
 	return query
 }
@@ -125,16 +149,12 @@ func buildSearchReq(req *request.SearchProductReq) map[string]interface{} {
 func GetSearchHistory(req *request.GetSearchHistoryReq) (response.SearchHistoryResp, exceptions.APIError) {
 	var resp response.SearchHistoryResp
 
-	var pageQuery db.GenericQuery
-	if !req.ShowAll {
-		pageQuery = db.Page(1, 10)
-	}
-
 	history, err := db.GetAll[models.SearchHistory](
 		db.Equal("user_id", req.UserID),
 		db.OrderBy("search_time", true),
 		db.GreaterThan("search_time", time.Now().AddDate(0, -1, 0).Unix()),
-		pageQuery,
+		db.Page(1, 20),
+		db.Distinct("keyword"),
 	)
 
 	if err != nil {

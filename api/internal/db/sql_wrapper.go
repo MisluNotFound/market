@@ -129,6 +129,12 @@ func Page(page int, pageSize int) GenericQuery {
 	}
 }
 
+func Distinct(field string) GenericQuery {
+	return func(tx *gorm.DB) *gorm.DB {
+		return tx.Distinct(field)
+	}
+}
+
 func OrderBy(field string, desc bool) GenericQuery {
 	return func(tx *gorm.DB) *gorm.DB {
 		if desc {

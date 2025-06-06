@@ -73,7 +73,7 @@ func (s *Server) registerUserGroup(group *gin.RouterGroup) {
 }
 
 func (s *Server) registerMockGroup(group *gin.RouterGroup) {
-	group.Use(controllers.JWTMiddleware())
+	group.Use(controllers.JWTMiddleware(true))
 	group.POST("", controllers.MockPost())
 	group.GET("", controllers.MockGet())
 	group.GET("/error", controllers.MockError())
@@ -104,7 +104,7 @@ func (s *Server) registerAssertGroup(group *gin.RouterGroup) {
 }
 
 func (s *Server) registerOrderGroup(group *gin.RouterGroup) {
-	group.POST("/:userID/:productID", controllers.JWTMiddleware(), controllers.ScrapMiddleware(), controllers.PurchaseProduct())
+	group.POST("/:userID/:productID", controllers.JWTMiddleware(true), controllers.ScrapMiddleware(), controllers.PurchaseProduct())
 	group.GET("/:userID/list", controllers.GetOrderList())
 	group.GET("/:userID/:orderID", controllers.GetOrder())
 	group.PUT("/shipped/:userID/:orderID", controllers.ConfirmOrderShipped())
@@ -113,15 +113,16 @@ func (s *Server) registerOrderGroup(group *gin.RouterGroup) {
 	group.GET("/:userID/status", controllers.GetAllOrderStatus())
 	group.POST("/refund/:userID/:orderID", controllers.RefoundOrder())
 	group.PUT("/cancel/:userID/:orderID", controllers.CancelOrder())
-	group.POST("/comment/:orderID", controllers.JWTMiddleware(), controllers.CreateOrderComment())
-	group.POST("/comment/:orderID/reply", controllers.JWTMiddleware(), controllers.ReplyOrderComment())
+	group.POST("/comment/:orderID", controllers.JWTMiddleware(true), controllers.CreateOrderComment())
+	group.POST("/comment/:orderID/reply", controllers.JWTMiddleware(true), controllers.ReplyOrderComment())
 	group.GET("/comment/:orderID", controllers.GetOrderComments())
 	group.GET("/comment/seller/:userID", controllers.GetSellerComments())
 	group.GET("/:userID/uncomment", controllers.GetUnCommentOrder())
+	group.GET("/status/:orderID", controllers.GetOrderStatus())
 }
 
 func (s *Server) registerSearchGroup(group *gin.RouterGroup) {
-	group.POST("/products", controllers.SearchProduct())
+	group.POST("/products", controllers.JWTMiddleware(false), controllers.SearchProduct())
 	group.GET("/:userID/history", controllers.GetSearchHistory())
 }
 
@@ -137,7 +138,7 @@ func (s *Server) registerAddressGroup(group *gin.RouterGroup) {
 	group.PUT("/:addressID", controllers.UpdateAddress())
 	group.GET("/:userID", controllers.GetAddress())
 	group.DELETE("/:addressID", controllers.DeleteAddress())
-	group.PUT("/default/:addressID", controllers.SetDefaultAddress())
+	group.PUT("/default/:addressID", controllers.JWTMiddleware(true), controllers.SetDefaultAddress())
 }
 
 func (s *Server) registerAdminGroup(group *gin.RouterGroup) {

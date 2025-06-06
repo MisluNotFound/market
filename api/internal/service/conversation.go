@@ -52,6 +52,7 @@ func SaveMessage(raw *request.Message) error {
 	case link:
 		// 商品链接
 		// TODO implement
+		message.Content = raw.Content
 	default:
 		return nil
 	}

@@ -223,6 +223,7 @@ func Login(req *request.LoginReq) (response.LoginResp, exceptions.APIError) {
 	resp.AccessToken = accessToken
 	resp.RefreshToken = refreshToken
 	resp.UserID = user.ID
+	resp.NeedSelectTags = !user.SelectedTags
 
 	return resp, nil
 }
@@ -271,7 +272,7 @@ func SelectInterestTags(req *request.SelectInterestTagsReq) exceptions.APIError 
 			return nil
 		}
 
-		err := db.Create(userTags)
+		err := db.Create(&userTags)
 		if err != nil {
 			return err
 		}
@@ -280,7 +281,7 @@ func SelectInterestTags(req *request.SelectInterestTagsReq) exceptions.APIError 
 			db.Equal("id", req.UserID),
 		)
 		user.SelectedTags = true
-		err = db.Update(user)
+		err = db.Update(&user)
 		return err
 	})
 
@@ -289,4 +290,10 @@ func SelectInterestTags(req *request.SelectInterestTagsReq) exceptions.APIError 
 	}
 
 	return nil
+}
+
+func getUserCredit(userID string) (models.Credit, error) {
+	return db.GetOne[models.Credit](
+		db.Equal("user_id", userID),
+	)
 }

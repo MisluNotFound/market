@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mislu/market-api/internal/core/recommend"
 	resourcemanager "github.com/mislu/market-api/internal/core/resource_manager"
 	"github.com/mislu/market-api/internal/db"
 	"github.com/mislu/market-api/internal/es"
@@ -58,10 +59,9 @@ func CreateProduct(req *request.CreateProductReq) (response.CreateProductResp, e
 		ShippingPrise:  req.ShipPrice,
 		CanSelfPickup:  req.CanSelfPickup,
 		OriginalPrice:  req.OriginalPrice,
-
-		// TODO location
-		IsPublished: true,
-		PublishAt:   time.Now(),
+		Location:       req.AddressID,
+		IsPublished:    true,
+		PublishAt:      time.Now(),
 	}
 
 	switch req.Condition {
@@ -91,7 +91,7 @@ func CreateProduct(req *request.CreateProductReq) (response.CreateProductResp, e
 	}
 
 	product.Pics = strings.Join(pics, ",")
-
+	attributesList := make([]string, 0, len(attributes))
 	// 数据库创建商品，分类
 	err = db.WithTransaction(func(tx *gorm.DB) error {
 		if err := db.Create(product, tx); err != nil {
@@ -105,6 +105,7 @@ func CreateProduct(req *request.CreateProductReq) (response.CreateProductResp, e
 				AttributeID: id,
 				Value:       value,
 			})
+			attributesList = append(attributesList, value)
 		}
 
 		productCategories := make([]models.ProductCategory, 0, len(req.Categories))
@@ -151,7 +152,6 @@ func CreateProduct(req *request.CreateProductReq) (response.CreateProductResp, e
 	}
 
 	productDocument.Category = categoriesString
-
 	for id, value := range attributes {
 		attribute, err := db.GetOne[models.AttributeTemplate](
 			db.Equal("id", id),
@@ -176,7 +176,10 @@ func CreateProduct(req *request.CreateProductReq) (response.CreateProductResp, e
 		return resp, exceptions.InternalServerError(err)
 	}
 
-	// TODO 写入gorse
+	err = recommend.CreateItem(*product, categoriesString, attributesList)
+	if err != nil {
+		return resp, exceptions.InternalServerError(err)
+	}
 	return resp, nil
 }
 
@@ -211,7 +214,10 @@ func GetProduct(req *request.GetProductReq) (response.GetProductResp, exceptions
 	resp.User = user
 	resp.Product = product
 
-	// TODO get comment
+	address, err := getProductAddress(product.Location)
+	if err != nil {
+		return resp, exceptions.InternalServerError(err)
+	}
 
 	productCategories, err := db.GetAll[models.ProductCategory](
 		db.Equal("product_id", req.ProductID),
@@ -236,6 +242,13 @@ func GetProduct(req *request.GetProductReq) (response.GetProductResp, exceptions
 		attributes[productAttribute.AttributeID] = productAttribute.Value
 	}
 	resp.Attributes = attributes
+
+	credit, err := getUserCredit(product.UserID)
+	if err != nil {
+		return response.GetProductResp{}, exceptions.InternalServerError(err)
+	}
+	resp.Credit = credit
+	resp.Address = address.Address
 
 	return resp, nil
 }
@@ -312,6 +325,7 @@ func UpdateProduct(req *request.UpdateProductReq) (response.CreateProductResp, e
 	product.ShippingMethod = req.ShipMethod
 	product.CanSelfPickup = req.CanSelfPickup
 	product.OriginalPrice = req.OriginalPrice
+	product.Location = req.AddressID
 
 	err = db.WithTransaction(func(tx *gorm.DB) error {
 		if err := db.Update(product, tx); err != nil {
@@ -341,7 +355,7 @@ func UpdateProduct(req *request.UpdateProductReq) (response.CreateProductResp, e
 			}
 		}
 
-		return db.FirstOrCreate(productAttributes, tx)
+		return db.FirstOrCreate(&productAttributes, tx)
 	})
 	if err != nil {
 		return resp, exceptions.InternalServerError(err)
@@ -473,6 +487,9 @@ func GetUserProducts(req *request.GetUserProductsReq) (response.GetUserProductsR
 	credit, err := db.GetOne[models.Credit](
 		db.Equal("user_id", req.UserID),
 	)
+	if err != nil {
+		return resp, exceptions.InternalServerError(err)
+	}
 
 	products, err := db.GetAll[models.Product](
 		db.OrderBy("publish_at", true),
@@ -487,10 +504,16 @@ func GetUserProducts(req *request.GetUserProductsReq) (response.GetUserProductsR
 
 	userProducts := make([]response.UserProduct, 0, len(products))
 	for _, product := range products {
+		address, err := getProductAddress(product.Location)
+		if err != nil {
+			continue
+		}
+
 		userProducts = append(userProducts, response.UserProduct{
 			User:    user,
 			Product: product,
 			Credit:  credit,
+			Address: address.Address,
 		})
 	}
 
@@ -532,11 +555,20 @@ func GetProductList(req *request.GetProductListReq) (response.GetProductListResp
 		credit, err := db.GetOne[models.Credit](
 			db.Equal("user_id", product.UserID),
 		)
+		if err != nil {
+			continue
+		}
+
+		address, err := getProductAddress(product.Location)
+		if err != nil {
+			continue
+		}
 
 		resp.Products = append(resp.Products, response.UserProduct{
 			User:    user,
 			Product: product,
 			Credit:  credit,
+			Address: address.Address,
 		})
 	}
 
@@ -750,4 +782,10 @@ func GetInterestTags() (response.GetInterestTagsResp, exceptions.APIError) {
 	resp = tags
 
 	return resp, nil
+}
+
+func getProductAddress(addressID string) (models.Address, error) {
+	return db.GetOne[models.Address](
+		db.Equal("id", addressID),
+	)
 }

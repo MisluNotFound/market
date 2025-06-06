@@ -208,6 +208,14 @@ func SetDefaultAddress(req *request.SetDefaultAddressReq) exceptions.APIError {
 			return nil
 		}
 
+		defaultAddress, err := db.GetOne[models.UserAddress](
+			db.Equal("user_id", req.UserID),
+			db.Equal("is_default", true),
+		)
+		if err != nil {
+			return err
+		}
+
 		userAddress.IsDefault = *req.IsDefault
 		if err := db.Update(&userAddress, tx); err != nil {
 			return err
@@ -217,19 +225,12 @@ func SetDefaultAddress(req *request.SetDefaultAddressReq) exceptions.APIError {
 			return nil
 		}
 
-		defaultAddress, err := db.GetOne[models.UserAddress](
-			db.Equal("user_id", req.UserID),
-		)
-
-		if !defaultAddress.Exists() {
-			return nil
-		}
-
 		defaultAddress.IsDefault = false
-		if err := db.Update(&defaultAddress, tx); err != nil {
-			return err
+		if defaultAddress.Exists() {
+			if err := db.Update(&defaultAddress, tx); err != nil {
+				return err
+			}
 		}
-
 		return nil
 	})
 

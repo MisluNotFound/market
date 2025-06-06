@@ -11,3 +11,15 @@ type Credit struct {
 func (Credit) TableName() string {
 	return "credit"
 }
+
+func (c Credit) Exists() bool {
+	return len(c.UserID) > 0
+}
+
+func CalculateReputation(c *Credit) {
+	if c.TotalComment == 0 {
+		return
+	}
+
+	c.Reputation = float64(c.PositiveComment) / float64(c.TotalComment) * 100
+}

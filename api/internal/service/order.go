@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"log"
 	"net/url"
 	"strconv"
 	"time"
@@ -318,23 +319,11 @@ func PayOrder(req *request.PayOrderReq) (response.PayOrderResp, exceptions.APIEr
 		return resp, exceptions.BadRequestError(errors.New("order is not to be paid"), exceptions.OrderNotToBePaidError)
 	}
 
-	order.Status = orderStatusPaid
-	order.PayTime = time.Now()
-	if err := db.Update(order); err != nil {
+	if err := db.Update(&order); err != nil {
 		return resp, exceptions.InternalServerError(err)
 	}
 
-	var paymentType types.PaymentType
-	switch req.Method {
-	case "alipay":
-		paymentType = types.Alipay
-	case "wechat":
-		paymentType = types.Wechat
-	}
-	paymentService, err := payment.NewPaymentService(paymentType)
-	if err != nil {
-		return resp, exceptions.InternalServerError(err)
-	}
+	paymentService := payment.GetGlobalPaymentService()
 
 	product, err := db.GetOne[models.Product](
 		db.Equal("id", order.ProductID),
@@ -355,6 +344,10 @@ func PayOrder(req *request.PayOrderReq) (response.PayOrderResp, exceptions.APIEr
 
 	order.PayMethod = req.Method
 	resp.PayURL = payResp.PaymentURL
+	err = db.Update(order)
+	if err != nil {
+		return resp, exceptions.InternalServerError(err)
+	}
 	return resp, nil
 }
 
@@ -561,5 +554,65 @@ func GetUnCommentOrder(req *request.GetUncommentOrder) (response.GetUnCommentOrd
 
 	resp.Orders = sellerOrders
 
+	return resp, nil
+}
+
+func GetOrderStatus(req *request.GetOrderStatusReq) (response.GetOrderStatusResp, exceptions.APIError) {
+	order, err := db.GetOne[models.Order](
+		db.Equal("id", req.OrderID),
+	)
+
+	if err != nil {
+		return response.GetOrderStatusResp{}, exceptions.InternalServerError(err)
+	}
+
+	if order.Status == orderStatusPaid {
+		return response.GetOrderStatusResp{Status: order.Status}, nil
+	}
+
+	paymentService := payment.GetGlobalPaymentService()
+
+	gap := time.Second * 2
+	maxRetries := 3
+	retryCount := 0
+	for {
+		if retryCount >= maxRetries {
+			break
+		}
+
+		tradeResp, err := paymentService.QueryTrade(order.ID)
+		if err != nil {
+			time.Sleep(gap)
+			gap = gap * 2
+			if gap > time.Second*60 {
+				gap = time.Second * 60
+			}
+			retryCount++
+			continue
+		}
+
+		switch tradeResp.TradeStatus {
+		case types.TradeStatusWaitBuyerPay:
+			time.Sleep(gap)
+			gap = gap * 2
+			if gap > time.Second*60 {
+				gap = time.Second * 60
+			}
+			retryCount++
+			continue
+		case types.TradeStatusSuccess:
+			order.Status = orderStatusPaid
+			order.PayTime = time.Now()
+			if err := db.Update(&order); err != nil {
+				return response.GetOrderStatusResp{Status: orderStatusPaid}, exceptions.InternalServerError(err)
+			}
+			return response.GetOrderStatusResp{Status: orderStatusPaid}, exceptions.InternalServerError(err)
+		default:
+			log.Printf("Order %s: Unexpected trade status: %s", order.ID, tradeResp.TradeStatus)
+		}
+	}
+
+	resp := response.GetOrderStatusResp{}
+	resp.Status = order.Status
 	return resp, nil
 }

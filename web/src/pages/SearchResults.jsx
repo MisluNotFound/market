@@ -43,7 +43,7 @@ const SearchResults = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [products, setProducts] = useState([]);
-    const [sortOption, setSortOption] = useState({ field: 'create_at', decs: true });
+    const [sortOption, setSortOption] = useState({ field: 'created_at', desc: true });
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
 
@@ -92,14 +92,15 @@ const SearchResults = () => {
     };
 
     const sortOptions = [
-        { label: '最新发布', value: 'create_at,true' },
+        { label: '最新发布', value: 'created_at,true' },
         { label: '价格从低到高', value: 'price,false' },
         { label: '价格从高到低', value: 'price,true' }
     ];
 
     const handleSortChange = (value) => {
-        const [field, decs] = value.split(',');
-        setSortOption({ field, decs: decs === 'true' });
+        const [field, desc] = value.split(',');
+        console.log(field, desc)
+        setSortOption({ field, desc: desc === 'true' });
     };
 
     const handleSearch = (keyword) => {
@@ -121,7 +122,7 @@ const SearchResults = () => {
                                 placeholder="排序方式"
                                 options={sortOptions}
                                 onChange={handleSortChange}
-                                defaultValue="create_at,true"
+                                defaultValue="created_at,true"
                             />
                         </div>
                     </Space>

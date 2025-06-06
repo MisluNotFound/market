@@ -7,9 +7,10 @@ type UploadAvatarResp struct {
 }
 
 type LoginResp struct {
-	RefreshToken string `json:"refreshToken"`
-	AccessToken  string `json:"accessToken"`
-	UserID       string `json:"userID"`
+	RefreshToken   string `json:"refreshToken"`
+	AccessToken    string `json:"accessToken"`
+	UserID         string `json:"userID"`
+	NeedSelectTags bool   `json:"needSelectTags"`
 }
 
 type GetUserInfoResp struct {

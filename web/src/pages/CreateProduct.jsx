@@ -1,5 +1,11 @@
 import { useState, useEffect } from 'react';
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Select, message } from 'antd';
+import ProductService from '../services/product';
+import AuthService from '../services/auth';
+import AddressService from '../services/address';
+import '../styles/create-product.css';
 
 // 递归查找分类
 const findCategoryById = (categories, id) => {
@@ -40,11 +46,6 @@ const renderCategoryOptions = (categories) => {
   return renderOptions(categories);
 };
 
-import { useNavigate } from 'react-router-dom';
-import ProductService from '../services/product';
-import AuthService from '../services/auth';
-import '../styles/create-product.css';
-
 const CreateProduct = () => {
   const [formData, setFormData] = useState({
     originalPrice: '',
@@ -56,33 +57,38 @@ const CreateProduct = () => {
     categoryId: '',
     attributes: {},
     condition: 'new',
-    usedTime: ''
+    usedTime: '',
+    addressId: ''
   });
   const [pics, setPics] = useState([]);
   const [error, setError] = useState('');
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [addresses, setAddresses] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await ProductService.getCategories();
-        if (response?.data) {
-          setCategories(response.data);
-        } else {
-          setError('获取分类数据失败');
+        const categoryResponse = await ProductService.getCategories();
+        if (categoryResponse?.data) {
+          setCategories(categoryResponse.data);
+        }
+
+        const addressResponse = await AddressService.getAddresses();
+        if (addressResponse?.data?.code === 200) {
+          setAddresses(addressResponse.data.data.addresses || []);
         }
       } catch (err) {
-        console.error('获取分类失败:', err);
-        setError('获取分类失败，请稍后重试');
+        console.error('获取数据失败:', err);
+        setError('获取数据失败，请稍后重试');
       } finally {
         setLoading(false);
       }
     };
-    fetchCategories();
+    fetchData();
   }, []);
 
   const handleChange = (e) => {
@@ -165,7 +171,6 @@ const CreateProduct = () => {
     e.preventDefault();
     setError('');
 
-    // 检查是否登录
     const userId = localStorage.getItem('userId');
     if (!userId) {
       setError('请先登录');
@@ -173,7 +178,11 @@ const CreateProduct = () => {
       return;
     }
 
-    // 检查图片上传
+    if (!formData.addressId) {
+      setError('请选择收货地址');
+      return;
+    }
+
     if (pics.length === 0) {
       setError('请上传至少一张商品图片');
       return;
@@ -188,8 +197,8 @@ const CreateProduct = () => {
       data.append('shipPrice', formData.shipPrice);
       data.append('canSelfPickup', formData.canSelfPickup);
       data.append('categories', formData.categoryId);
+      data.append('addressId', formData.addressId);
 
-      // 转换属性格式为map[uint]string
       const attributesMap = {};
       Object.keys(formData.attributes).forEach(key => {
         attributesMap[parseInt(key)] = formData.attributes[key];
@@ -220,6 +229,23 @@ const CreateProduct = () => {
       {error && <div className="error-message">{error}</div>}
 
       <form onSubmit={handleSubmit}>
+        <div className="form-row">
+          <label className="form-label">收货地址</label>
+          <Select
+            className="form-control"
+            value={formData.addressId}
+            onChange={(value) => setFormData(prev => ({ ...prev, addressId: value }))}
+            placeholder="请选择收货地址"
+            required
+          >
+            {addresses.map(address => (
+              <Select.Option key={address.addressID} value={address.addressID}>
+                {`${address.receiver} ${address.phone} - ${address.province}${address.city}${address.district} ${address.street}${address.streetNumber} ${address.detail}`}
+              </Select.Option>
+            ))}
+          </Select>
+        </div>
+
         <div className="form-row">
           <label className="form-label">商品分类</label>
           <select

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Descriptions, Button, message, Tag, Input } from 'antd';
+import { Descriptions, Button, message, Tag, Input, Modal, Spin } from 'antd';
 import AuthService from '../services/auth';
 import OrderService from '../services/order';
 
@@ -17,12 +17,28 @@ const Title = styled.h2`
   margin-bottom: 24px;
 `;
 
+const PaymentStatusModal = styled(Modal)`
+  .ant-modal-body {
+    text-align: center;
+    padding: 24px;
+  }
+`;
+
+const SpinContainer = styled.div`
+  margin: 20px 0;
+  text-align: center;
+`;
+
 const OrderDetail = () => {
   const [loading, setLoading] = useState(false);
   const [order, setOrder] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const { id: orderId } = useParams();
   const navigate = useNavigate();
+  const [paymentPolling, setPaymentPolling] = useState(false);
+  const [pollingCount, setPollingCount] = useState(0);
+  const MAX_POLLING_COUNT = 60; // 最大轮询次数，即60次
+  const POLLING_INTERVAL = 3000; // 轮询间隔，3秒
 
   useEffect(() => {
     if (!AuthService.isAuthenticated()) {
@@ -81,13 +97,49 @@ const OrderDetail = () => {
     }
   };
 
+  // 轮询订单状态
+  const pollOrderStatus = async (orderId) => {
+    setPaymentPolling(true);
+    setPollingCount(0);
+
+    const poll = async () => {
+      if (pollingCount >= MAX_POLLING_COUNT) {
+        message.error('支付超时，请稍后在订单中心查看支付状态');
+        setPaymentPolling(false);
+        return;
+      }
+
+      try {
+        const response = await OrderService.getOrderStatus(orderId);
+        if (response.code === 200) {
+          if (response.data.status === 2) {
+            message.success('支付成功！');
+            setPaymentPolling(false);
+            fetchOrder(); // 刷新订单信息
+            return;
+          }
+        }
+
+        setPollingCount(prev => prev + 1);
+        setTimeout(poll, POLLING_INTERVAL);
+      } catch (error) {
+        message.error('获取支付状态失败');
+        setPaymentPolling(false);
+      }
+    };
+
+    poll();
+  };
+
   const handlePay = async () => {
     setLoading(true);
     try {
       const response = await OrderService.payOrder(orderId);
       if (response.code === 200 && response.data?.payURL) {
-        // 跳转到支付宝支付页面
-        window.location.href = response.data.payURL;
+        // 在新标签页打开支付宝支付页面
+        window.open(response.data.payURL, '_blank');
+        // 开始轮询支付状态
+        pollOrderStatus(orderId);
       } else {
         throw new Error(response.msg || '获取支付链接失败');
       }
@@ -145,15 +197,17 @@ const OrderDetail = () => {
   const [rating, setRating] = useState(5); // 默认5星好评
 
   // 渲染评论项
-  const renderComment = (comment, depth = 0) => {
+  const renderComment = (comment) => {
     return (
       <div key={comment.id} style={{
-        marginLeft: depth * 20,
-        padding: '12px',
+        padding: '16px',
         borderBottom: '1px solid #f0f0f0',
-        backgroundColor: depth > 0 ? '#fafafa' : 'transparent'
+        backgroundColor: 'transparent',
+        margin: '8px 0',
+        borderRadius: '4px',
+        border: '1px solid #eee'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
           <img
             src={comment.avatar || '/default-avatar.png'}
             alt={comment.username}
@@ -169,8 +223,8 @@ const OrderDetail = () => {
             {new Date(comment.createdAt).toLocaleString()}
           </span>
         </div>
-        <div style={{ marginLeft: '40px' }}>
-          <p>{comment.comment}</p>
+        <div style={{ marginLeft: '40px', textAlign: 'left' }}>
+          <p style={{ margin: '0 0 8px 0' }}>{comment.comment}</p>
           {comment.pics && comment.pics.split(',').map(pic => (
             <img
               key={pic}
@@ -183,7 +237,7 @@ const OrderDetail = () => {
               type="text"
               size="small"
               onClick={() => setReplyingTo(comment)}
-              style={{ padding: 0 }}
+              style={{ padding: '4px 0' }}
             >
               回复
             </Button>
@@ -191,7 +245,13 @@ const OrderDetail = () => {
         </div>
 
         {replyingTo?.id === comment.id && (
-          <div style={{ marginTop: '12px', marginLeft: '40px' }}>
+          <div style={{
+            marginTop: '12px',
+            marginLeft: '40px',
+            padding: '12px',
+            backgroundColor: '#f9f9f9',
+            borderRadius: '4px'
+          }}>
             <Input.TextArea
               rows={2}
               value={replyContent}
@@ -205,7 +265,7 @@ const OrderDetail = () => {
               <Button
                 type="primary"
                 size="small"
-                onClick={handleReply}
+                onClick={() => handleReply(comment.id)}
                 style={{ marginLeft: '8px' }}
               >
                 发送
@@ -214,7 +274,7 @@ const OrderDetail = () => {
           </div>
         )}
 
-        {comment.replies?.map(reply => renderComment(reply, depth + 1))}
+        {comment.replies?.map(reply => renderComment(reply))}
       </div>
     );
   };
@@ -225,7 +285,7 @@ const OrderDetail = () => {
       const loadComments = async () => {
         try {
           const res = await OrderService.getOrderComments(orderId);
-          setComments(res.data || []);
+          setComments(res.data.comments || []);
         } catch (error) {
           message.error(error.message);
         }
@@ -243,7 +303,7 @@ const OrderDetail = () => {
       const isGood = rating >= 3; // 3星以上算好评
       await OrderService.createOrderComment(orderId, commentContent, isGood);
       const res = await OrderService.getOrderComments(orderId);
-      setComments(res.data || []);
+      setComments(res.data.comments || []);
       message.success('评论提交成功');
       setCommentContent('');
       setRating(5); // 重置评分
@@ -252,15 +312,15 @@ const OrderDetail = () => {
     }
   };
 
-  const handleReply = async () => {
+  const handleReply = async (commentId) => {
     if (!replyContent.trim()) {
       message.warning('请输入回复内容');
       return;
     }
     try {
-      await OrderService.replyOrderComment(orderId, replyingTo.id, replyContent);
+      await OrderService.replyOrderComment(orderId, commentId, replyContent);
       const res = await OrderService.getOrderComments(orderId);
-      setComments(res.data || []);
+      setComments(res.data.comments || []);
       message.success('回复提交成功');
       setReplyingTo(null);
       setReplyContent('');
@@ -413,44 +473,61 @@ const OrderDetail = () => {
       {/* 评论区域 */}
       {order.status === 4 && (
         <div style={{ marginTop: '32px', borderTop: '1px solid #f0f0f0', paddingTop: '24px' }}>
-          <h3 style={{ marginBottom: '16px' }}>商品评价</h3>
+          <h3 style={{ marginBottom: '16px', textAlign: 'left' }}>商品评价</h3>
 
           {/* 评论列表 */}
           <div style={{ marginBottom: '24px' }}>
             {comments.length > 0 ? (
               comments.map(comment => renderComment(comment))
             ) : (
-              <div style={{ textAlign: 'center', color: '#999', padding: '24px 0' }}>
+              <div style={{ color: '#999', padding: '24px 0', textAlign: 'left' }}>
                 暂无评价
               </div>
             )}
           </div>
 
-          {/* 评论输入框 */}
-          {currentUser && (
-            <div>
-              {renderRatingStars()}
-              <Input.TextArea
-                rows={4}
-                value={commentContent}
-                onChange={(e) => setCommentContent(e.target.value)}
-                placeholder="写下您的评价..."
-                style={{ marginBottom: '12px' }}
-              />
-              <div style={{ textAlign: 'right' }}>
-                <Button
-                  type="primary"
-                  onClick={handleCommentSubmit}
-                  disabled={!commentContent.trim()}
-                >
-                  提交评价
-                </Button>
+          {/* 评论输入框 - 只对未评价的买家显示 */}
+          {currentUser &&
+            currentUser.id === order.userID &&
+            !order.isEvaluated && (
+              <div style={{ textAlign: 'left' }}>
+                {renderRatingStars()}
+                <Input.TextArea
+                  rows={4}
+                  value={commentContent}
+                  onChange={(e) => setCommentContent(e.target.value)}
+                  placeholder="写下您的评价..."
+                  style={{ marginBottom: '12px' }}
+                />
+                <div style={{ textAlign: 'right' }}>
+                  <Button
+                    type="primary"
+                    onClick={handleCommentSubmit}
+                    disabled={!commentContent.trim()}
+                  >
+                    提交评价
+                  </Button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
         </div>
       )}
-    </Container >
+
+      {/* 支付状态轮询提示 */}
+      <PaymentStatusModal
+        title="支付确认中"
+        open={paymentPolling}
+        footer={null}
+        closable={false}
+        maskClosable={false}
+      >
+        <SpinContainer>
+          <Spin size="large" />
+          <p style={{ marginTop: 16 }}>正在确认支付状态，请稍候...</p>
+          <p style={{ color: '#999' }}>剩余等待时间：{Math.max(0, MAX_POLLING_COUNT - pollingCount)} 秒</p>
+        </SpinContainer>
+      </PaymentStatusModal>
+    </Container>
   );
 };
 

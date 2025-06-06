@@ -9,6 +9,7 @@ import (
 	"github.com/mislu/market-api/internal/types/models"
 	"github.com/mislu/market-api/internal/types/request"
 	"github.com/mislu/market-api/internal/types/response"
+	"gorm.io/gorm"
 )
 
 // CreateOrderComment 创建订单评论
@@ -31,24 +32,64 @@ func CreateOrderComment(req *request.CreateOrderCommentReq, userID string) excep
 	if order.FinishTime.Before(time.Now().AddDate(0, -1, 0)) {
 		return exceptions.BadRequestError(errors.New("order older than 30 days"), exceptions.OrderOlderThan30DaysError)
 	}
+	err = db.WithTransaction(func(tx *gorm.DB) error {
+		// 创建评论
+		comment := models.OrderComment{
+			OrderID:   req.OrderID,
+			UserID:    userID,
+			ProductID: order.ProductID,
+			Comment:   req.Comment,
+			IsGood:    req.IsGood,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+			IsTop:     true,
+		}
 
-	// 创建评论
-	comment := models.OrderComment{
-		OrderID:   req.OrderID,
-		UserID:    userID,
-		ProductID: order.ProductID,
-		Comment:   req.Comment,
-		IsGood:    req.IsGood,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
+		if err := db.Create(&comment); err != nil {
+			return err
+		}
 
-	if err := db.Create(&comment); err != nil {
-		return exceptions.InternalServerError(err)
-	}
+		order.IsEvaluated = true
+		err = db.Update(&order)
+		if err != nil {
+			return err
+		}
 
-	order.IsEvaluated = true
-	err = db.Update(&order)
+		credit, err := db.GetOne[models.Credit](
+			db.Equal("user_id", order.SellerID),
+		)
+		if err != nil {
+			return err
+		}
+
+		if credit.Exists() {
+			credit.TotalComment += 1
+			if req.IsGood {
+				credit.PositiveComment += 1
+			} else {
+				credit.NegativeComment += 1
+			}
+
+			models.CalculateReputation(&credit)
+			if err = db.Update(&credit); err != nil {
+				return err
+			}
+		} else {
+			credit.TotalComment = 1
+			credit.UserID = order.SellerID
+			if req.IsGood {
+				credit.PositiveComment += 1
+			} else {
+				credit.NegativeComment += 1
+			}
+
+			models.CalculateReputation(&credit)
+			if err = db.Create(&credit); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 	if err != nil {
 		return exceptions.InternalServerError(err)
 	}

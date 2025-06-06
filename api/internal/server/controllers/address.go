@@ -86,6 +86,7 @@ func SetDefaultAddress() func(c *gin.Context) {
 			return
 		}
 
+		req.UserID, _ = GetContextUserID(c)
 		err := service.SetDefaultAddress(req)
 		if err != nil {
 			AbortWithError(c, err)

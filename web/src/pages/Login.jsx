@@ -17,9 +17,8 @@ const Login = () => {
     try {
       const response = await AuthService.login(username, password);
       message.success('登录成功');
-
-      // 如果需要选择兴趣标签，跳转到兴趣标签选择页面
       if (response.needSelectTags) {
+        console.log(response.needSelectTags)
         navigate('/interest-tags');
       } else {
         navigate('/');

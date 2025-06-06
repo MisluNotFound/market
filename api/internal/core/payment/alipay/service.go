@@ -28,12 +28,25 @@ func NewAlipayClient() (*AlipayService, error) {
 		return nil, err
 	}
 
+	aliPubKey, err := os.ReadFile("D:\\repository\\m-market\\api\\keys\\ali_public.txt")
+	if err != nil {
+		return nil, err
+	}
+
 	cli, err := alipay.New(app.GetConfig().Alipay.APPID, string(privateKey), false)
 	if err != nil {
 		return nil, err
 	}
 
-	cli.LoadAliPayPublicKey(string(publicKey))
+	err = cli.LoadAliPayPublicKey(string(publicKey))
+	if err != nil {
+		return nil, err
+	}
+	err = cli.LoadAliPayPublicKey(string(aliPubKey))
+	if err != nil {
+		return nil, err
+	}
+
 	return &AlipayService{
 		client: cli,
 	}, nil
@@ -51,7 +64,7 @@ func (s *AlipayService) Pay(ctx context.Context, req types.PaymentRequest) (*typ
 			OutTradeNo:  req.OrderID,
 			TotalAmount: req.Amount,
 			ProductCode: "FAST_INSTANT_TRADE_PAY",
-			NotifyURL:   app.GetConfig().Server.BaseIP + "/api/order/alipay/notify",
+			// NotifyURL:   app.GetConfig().Server.BaseIP + "/api/order/alipay/notify",
 		},
 	}
 
@@ -101,6 +114,7 @@ func (s *AlipayService) QueryTrade(outTradeNo string) (*types.QueryTradeResponse
 		OutTradeNo: outTradeNo,
 	}
 
+	// "crypto/rsa: verification error"
 	result, err := s.client.TradeQuery(context.Background(), query)
 	if err != nil {
 		return nil, fmt.Errorf("query trade failed: %v", err)
@@ -115,7 +129,7 @@ func (s *AlipayService) QueryTrade(outTradeNo string) (*types.QueryTradeResponse
 		OutTradeNo:   result.OutTradeNo,
 		BuyerLogonID: result.BuyerLogonId,
 		BuyerOpenID:  result.BuyerOpenId,
-		TradeStatus:  string(result.TradeStatus),
+		TradeStatus:  types.TradeStatus(result.TradeStatus),
 	}, nil
 }
 

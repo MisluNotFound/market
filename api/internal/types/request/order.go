@@ -47,3 +47,7 @@ type CancelOrderReq struct {
 type GetUncommentOrder struct {
 	UserIDReq
 }
+
+type GetOrderStatusReq struct {
+	OrderIDReq
+}

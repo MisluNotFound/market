@@ -23,6 +23,7 @@ type UserProduct struct {
 	Categories     []uint          `json:"categories"`
 	Attributes     map[uint]string `json:"attributes"`
 	IsLiked        bool            `json:"isLiked"`
+	Address        string          `json:"address"`
 }
 
 type GetUserProductsResp struct {

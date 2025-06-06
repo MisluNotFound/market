@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:3200/api';
+const API_BASE_URL = 'http://localhost:3200/api/product';
 
 const ProductService = {
   // 创建商品
@@ -8,7 +8,7 @@ const ProductService = {
     console.log(formData)
     try {
       const accessToken = localStorage.getItem('accessToken');
-      const response = await axios.post(`${API_BASE_URL}/product/${userId}`, formData, {
+      const response = await axios.post(`${API_BASE_URL}/${userId}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           Authorization: `Bearer ${accessToken}`
@@ -36,7 +36,7 @@ const ProductService = {
   },
 
   // 更新商品
-  updateProduct: async (userId, productId, formData) => {
+  updateProduct: async (formData, userId, productId) => {
     try {
       const accessToken = localStorage.getItem('accessToken');
       const response = await axios.put(`${API_BASE_URL}/${userId}/${productId}`, formData, {
@@ -55,7 +55,7 @@ const ProductService = {
   offShelves: async (userId, productId) => {
     try {
       const accessToken = localStorage.getItem('accessToken');
-      const response = await axios.put(`${API_BASE_URL}/product/${userId}/${productId}/off-shelves`, {}, {
+      const response = await axios.put(`${API_BASE_URL}/${userId}/${productId}/off-shelves`, {}, {
         headers: {
           Authorization: `Bearer ${accessToken}`
         }
@@ -70,7 +70,7 @@ const ProductService = {
   onShelves: async (userId, productId) => {
     try {
       const accessToken = localStorage.getItem('accessToken');
-      const response = await axios.put(`${API_BASE_URL}/product/${userId}/${productId}/on-shelves`, {}, {
+      const response = await axios.put(`${API_BASE_URL}/${userId}/${productId}/on-shelves`, {}, {
         headers: {
           Authorization: `Bearer ${accessToken}`
         }
@@ -85,7 +85,7 @@ const ProductService = {
   soldOut: async (userId, productId) => {
     try {
       const accessToken = localStorage.getItem('accessToken');
-      const response = await axios.put(`${API_BASE_URL}/product/${userId}/${productId}/sold`, {}, {
+      const response = await axios.put(`${API_BASE_URL}/${userId}/${productId}/sold`, {}, {
         headers: {
           Authorization: `Bearer ${accessToken}`
         }
@@ -99,7 +99,7 @@ const ProductService = {
   selling: async (userId, productId) => {
     try {
       const accessToken = localStorage.getItem('accessToken');
-      const response = await axios.put(`${API_BASE_URL}/product/${userId}/${productId}/selling`, {}, {
+      const response = await axios.put(`${API_BASE_URL}/${userId}/${productId}/selling`, {}, {
         headers: {
           Authorization: `Bearer ${accessToken}`
         }
@@ -113,7 +113,7 @@ const ProductService = {
   getProductList: async (page = 1, size = 10) => {
     try {
       const accessToken = localStorage.getItem('accessToken');
-      const response = await axios.get(`${API_BASE_URL}/product/products`, {
+      const response = await axios.get(`${API_BASE_URL}/products`, {
         params: {
           page,
           size
@@ -145,7 +145,7 @@ const ProductService = {
   getProductDetail: async (userId, productId) => {
     try {
       const accessToken = localStorage.getItem('accessToken');
-      const response = await axios.get(`${API_BASE_URL}/product/${userId}/${productId}`, {
+      const response = await axios.get(`${API_BASE_URL}/${userId}/${productId}`, {
         headers: {
           Authorization: `Bearer ${accessToken}`
         }
@@ -159,13 +159,13 @@ const ProductService = {
   searchProducts: async (searchParams) => {
     try {
       const accessToken = localStorage.getItem('accessToken');
-      const response = await axios.post(`${API_BASE_URL}/search/products`, {
+      const response = await axios.post(`http://localhost:3200/api/search/products`, {
         keyword: searchParams.keyword,
         categories: searchParams.categories || [],
         attributes: [],
         sort: {
           field: searchParams.sort?.field || 'createTime',
-          decs: searchParams.sort?.decs || true
+          desc: searchParams.sort?.desc
         }
       }, {
         params: {
@@ -186,7 +186,7 @@ const ProductService = {
   getCategories: async () => {
     try {
       const accessToken = localStorage.getItem('accessToken');
-      const response = await axios.get(`${API_BASE_URL}/product/category`, {
+      const response = await axios.get(`${API_BASE_URL}/category`, {
         headers: {
           Authorization: `Bearer ${accessToken}`
         }
@@ -202,7 +202,7 @@ const ProductService = {
     try {
       const userId = localStorage.getItem("userId");
       const accessToken = localStorage.getItem('accessToken');
-      const response = await axios.get(`${API_BASE_URL}/product/${userId}`, {
+      const response = await axios.get(`${API_BASE_URL}/${userId}`, {
         params: { page, size },
         headers: {
           Authorization: `Bearer ${accessToken}`
@@ -219,7 +219,7 @@ const ProductService = {
     try {
       const userId = localStorage.getItem("userId");
       const accessToken = localStorage.getItem('accessToken');
-      const response = await axios.get(`${API_BASE_URL}/product/${userId}/favorites`, {
+      const response = await axios.get(`${API_BASE_URL}/${userId}/favorites`, {
         params: { page, size },
         headers: {
           Authorization: `Bearer ${accessToken}`
@@ -235,7 +235,7 @@ const ProductService = {
   getTags: async () => {
     try {
       const accessToken = localStorage.getItem('accessToken');
-      const response = await axios.get(`${API_BASE_URL}/product/tags`, {
+      const response = await axios.get(`${API_BASE_URL}/tags`, {
         headers: {
           Authorization: `Bearer ${accessToken}`
         }
@@ -243,6 +243,36 @@ const ProductService = {
       return response.data;
     } catch (error) {
       throw error.response?.data || { message: '获取标签失败' };
+    }
+  },
+
+  // 收藏商品
+  likeProduct: async (userId, productId) => {
+    try {
+      const accessToken = localStorage.getItem('accessToken');
+      const response = await axios.post(`${API_BASE_URL}/${userId}/${productId}/like`, {}, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: '收藏失败' };
+    }
+  },
+
+  // 取消收藏商品
+  dislikeProduct: async (userId, productId) => {
+    try {
+      const accessToken = localStorage.getItem('accessToken');
+      const response = await axios.put(`${API_BASE_URL}/${userId}/${productId}/dislike`, {}, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: '取消收藏失败' };
     }
   },
 }

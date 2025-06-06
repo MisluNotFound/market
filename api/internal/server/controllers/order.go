@@ -286,3 +286,21 @@ func GetUnCommentOrder() func(c *gin.Context) {
 		Success(c, ResponseTypeJSON, resp)
 	}
 }
+
+func GetOrderStatus() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		req := &request.GetOrderStatusReq{}
+		if err := BindRequest(c, req); err != nil {
+			AbortWithError(c, err)
+			return
+		}
+
+		resp, err := service.GetOrderStatus(req)
+		if err != nil {
+			AbortWithError(c, err)
+			return
+		}
+
+		Success(c, ResponseTypeJSON, resp)
+	}
+}

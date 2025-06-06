@@ -258,6 +258,12 @@ const OrderService = {
     } catch (error) {
       throw new Error(error.response?.data?.message || '获取未评价订单失败');
     }
+  },
+
+  // 获取订单状态
+  async getOrderStatus(orderId) {
+    const response = await axios.get(`${API_BASE_URL}/status/${orderId}`);
+    return response.data;
   }
 };
 

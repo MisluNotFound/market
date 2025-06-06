@@ -9,6 +9,7 @@ import (
 
 	"github.com/mislu/market-api/internal/core/mq"
 	"github.com/mislu/market-api/internal/core/mq/memory"
+	"github.com/mislu/market-api/internal/types/models"
 	"github.com/mislu/market-api/internal/utils/app"
 	"github.com/zhenghaoz/gorse/client"
 )
@@ -139,6 +140,24 @@ func (w *RecommendationWorker) InsertFeedback(ctx context.Context, feedbacks []F
 			ID:      fmt.Sprintf("%s-%s-%s", feedback.UserId, feedback.ItemId, feedback.FeedbackType),
 			Content: msg,
 		})
+	}
+
+	return nil
+}
+
+func CreateItem(product models.Product, categories []string, attributes []string) error {
+	item := client.Item{
+		ItemId:     product.ID,
+		IsHidden:   false,
+		Categories: categories,
+		Timestamp:  time.Now().String(),
+		Labels:     attributes,
+		Comment:    product.Describe,
+	}
+
+	_, err := GlobalWorker.gorseClient.InsertItem(context.Background(), item)
+	if err != nil {
+		return err
 	}
 
 	return nil
